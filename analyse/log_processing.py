@@ -34,6 +34,33 @@ def get_log(log_file_path):
 
         return list(log_entries)
 
+global lines_per_file
+lines_per_file = {}
+
+def pool_log(log_file_path):
+    script_dir = os.path.dirname(__file__)
+    abs_log_file_path = os.path.join(script_dir, '..', log_file_path)
+
+    if abs_log_file_path not in lines_per_file:
+        lines_per_file[abs_log_file_path] = 0
+
+    with open(abs_log_file_path, "r") as log_file:
+        log_raw_entries = log_file.read().split("\n")
+        entry_number = len(log_raw_entries)
+
+        if lines_per_file[abs_log_file_path] < entry_number:
+            # The new entries
+            log_raw_entry = log_raw_entries[lines_per_file[abs_log_file_path]:]
+            lines_per_file[abs_log_file_path] = entry_number
+
+            #Return the new entries
+            log_entries = map(process_entry, log_raw_entries)
+            log_entries = filter(lambda x: x is not None, log_entries)
+
+            return list(log_entries)
+        else:
+            return []
+
 def group_by(entries, criteria):
     grouped = {}
     for entry in entries:

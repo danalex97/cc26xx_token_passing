@@ -41,6 +41,8 @@ class Canvas():
 
         self.x = x
         self.y = y
+        if len(self.y) < len(self.x):
+            self.y += [0] * (len(self.x) - len(self.y))
         self.data.set_xdata(self.x)
         self.data.set_ydata(self.y)
 

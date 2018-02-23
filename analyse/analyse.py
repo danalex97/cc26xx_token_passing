@@ -5,6 +5,7 @@ from log_entries import BroadcastSentEntry
 from log_entries import BroadcastRecvEntry
 
 from log_processing import get_log
+from log_processing import pool_log
 from log_processing import group_by
 from log_processing import filter_entries
 
@@ -13,6 +14,9 @@ from collections import defaultdict
 from plot import make_canvases
 from plot import Canvas
 import time
+
+global interval
+interval = 1000
 
 def pdr(log_entries):
     send_entries = filter_entries(log_entries, BroadcastSentEntry)
@@ -24,17 +28,19 @@ def pdr(log_entries):
     pdr_per_node = {}
     for node_id in sent_by_id.keys():
         pdr_per_node[node_id] = []
-        interval = 1000
 
         send_entries = group_by(sent_by_id[node_id], lambda entry: int(entry.timestamp / interval))
         recv_entries = group_by(recv_by_id[node_id], lambda entry: int(entry.timestamp / interval))
 
         for i in sorted(list(set(send_entries.keys()) | set(recv_entries.keys()))):
-            if not i in send_entries or not i in recv_entries:
+            if not i in send_entries:
                 continue
 
             send_entries_per_interval = send_entries[i]
-            recv_entries_per_interval = recv_entries[i]
+
+            recv_entries_per_interval = []
+            if i in recv_entries:
+                recv_entries_per_interval += recv_entries[i]
             if i + 1 in recv_entries:
                 recv_entries_per_interval += recv_entries[i + 1]
 
@@ -54,25 +60,34 @@ def pdr(log_entries):
 if __name__ == "__main__":
     log_file = sys.argv[1]
 
-    log_entries = get_log(log_file)
-    pdr_per_node = pdr(log_entries)
+    # log_entries = get_log(log_file)
+    # pdr_per_node = pdr(log_entries)
 
     fig, axs = make_canvases()
 
     upd_interval = 30
     canvases = {}
     idx = 0
-    for key in pdr_per_node.keys():
+    for key in range(2, 11):
         canvases[key] = Canvas(fig, axs[idx], upd_interval, "Node {}".format(key))
         idx += 1
 
+    log_entries = []
     current_index = 0
     while True:
+        new_log_entries = pool_log(log_file)
+
+        log_entries += new_log_entries
+        pdr_per_node = pdr(log_entries)
+
+        slide = max(0, int(log_entries[-1].timestamp / interval) - upd_interval)
+        current_index = min(current_index, slide)
         for key, canvas in canvases.items():
             canvas.update_data(
                 range(current_index, current_index + upd_interval),
                 pdr_per_node[key][current_index : current_index + upd_interval])
         for key, canvas in canvases.items():
             canvas.draw()
-        time.sleep(0.1)
-        current_index += 1
+
+        if slide > current_index:
+            current_index += 1
