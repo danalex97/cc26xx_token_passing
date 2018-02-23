@@ -10,6 +10,10 @@ from log_processing import filter_entries
 
 from collections import defaultdict
 
+from plot import make_canvases
+from plot import Canvas
+import time
+
 def pdr(log_entries):
     send_entries = filter_entries(log_entries, BroadcastSentEntry)
     recv_entries = filter_entries(log_entries, BroadcastRecvEntry)
@@ -20,7 +24,7 @@ def pdr(log_entries):
     pdr_per_node = {}
     for node_id in sent_by_id.keys():
         pdr_per_node[node_id] = []
-        interval = 2000
+        interval = 1000
 
         send_entries = group_by(sent_by_id[node_id], lambda entry: int(entry.timestamp / interval))
         recv_entries = group_by(recv_by_id[node_id], lambda entry: int(entry.timestamp / interval))
@@ -52,3 +56,23 @@ if __name__ == "__main__":
 
     log_entries = get_log(log_file)
     pdr_per_node = pdr(log_entries)
+
+    fig, axs = make_canvases()
+
+    upd_interval = 30
+    canvases = {}
+    idx = 0
+    for key in pdr_per_node.keys():
+        canvases[key] = Canvas(fig, axs[idx], upd_interval, "Node {}".format(key))
+        idx += 1
+
+    current_index = 0
+    while True:
+        for key, canvas in canvases.items():
+            canvas.update_data(
+                range(current_index, current_index + upd_interval),
+                pdr_per_node[key][current_index : current_index + upd_interval])
+        for key, canvas in canvases.items():
+            canvas.draw()
+        time.sleep(0.1)
+        current_index += 1
