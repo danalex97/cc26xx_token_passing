@@ -17,15 +17,38 @@ def pdr(log_entries):
     sent_by_id = group_by(send_entries, lambda entry: entry.id)
     recv_by_id = group_by(recv_entries, lambda entry: entry.from_id)
 
+    pdr_per_node = {}
     for node_id in sent_by_id.keys():
-        send_entries = sent_by_id[node_id]
-        recv_entries = recv_by_id[node_id]
+        pdr_per_node[node_id] = []
+        interval = 2000
 
-        raport = len(recv_entries) / len(send_entries)
-        print(raport)
+        send_entries = group_by(sent_by_id[node_id], lambda entry: int(entry.timestamp / interval))
+        recv_entries = group_by(recv_by_id[node_id], lambda entry: int(entry.timestamp / interval))
+
+        for i in sorted(list(set(send_entries.keys()) | set(recv_entries.keys()))):
+            if not i in send_entries or not i in recv_entries:
+                continue
+
+            send_entries_per_interval = send_entries[i]
+            recv_entries_per_interval = recv_entries[i]
+            if i + 1 in recv_entries:
+                recv_entries_per_interval += recv_entries[i + 1]
+
+            send_entries_map = group_by(send_entries_per_interval, lambda entry: entry.msg_id)
+            recv_entries_map = group_by(recv_entries_per_interval, lambda entry: entry.msg_id)
+
+            count_recv_msg = 0
+            # count recv_msg by message id
+            for msg_id in send_entries_map.keys():
+                if msg_id in recv_entries_map:
+                    count_recv_msg += 1
+
+            raport = count_recv_msg / len(send_entries_per_interval)
+            pdr_per_node[node_id].append(raport)
+    return pdr_per_node
 
 if __name__ == "__main__":
     log_file = sys.argv[1]
 
     log_entries = get_log(log_file)
-    pdr(log_entries)
+    pdr_per_node = pdr(log_entries)
