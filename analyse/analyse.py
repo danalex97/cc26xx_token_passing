@@ -1,4 +1,6 @@
 import sys
+import os
+import subprocess
 
 from log_entries import LogEntry
 from log_entries import BroadcastSentEntry
@@ -28,6 +30,9 @@ def pdr(log_entries):
     pdr_per_node = {}
     for node_id in sent_by_id.keys():
         pdr_per_node[node_id] = []
+
+        if node_id not in sent_by_id: sent_by_id[node_id] = []
+        if node_id not in recv_by_id: recv_by_id[node_id] = []
 
         send_entries = group_by(sent_by_id[node_id], lambda entry: int(entry.timestamp / interval))
         recv_entries = group_by(recv_by_id[node_id], lambda entry: int(entry.timestamp / interval))
@@ -59,7 +64,6 @@ def pdr(log_entries):
 
 if __name__ == "__main__":
     log_file = sys.argv[1]
-
     # log_entries = get_log(log_file)
     # pdr_per_node = pdr(log_entries)
 
@@ -82,7 +86,10 @@ if __name__ == "__main__":
 
         slide = max(0, int(log_entries[-1].timestamp / interval) - upd_interval)
         current_index = min(current_index, slide)
+
         for key, canvas in canvases.items():
+            if key not in pdr_per_node:
+                continue
             canvas.update_data(
                 range(current_index, current_index + upd_interval),
                 pdr_per_node[key][current_index : current_index + upd_interval])

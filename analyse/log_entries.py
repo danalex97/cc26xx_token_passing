@@ -3,7 +3,7 @@ class LogEntry():
         raw_fields = raw_entry.replace('\t', ' ').split(" ", 2)
 
         try:
-            self.timestamp = float(raw_fields[0])
+            self.timestamp = float(raw_fields[0]) / 1000
         except:
             mins = float(raw_fields[0].split(":")[0])
             secs = float(raw_fields[0].split(":")[1])

@@ -6,3 +6,5 @@ obj_*
 *.sky
 __pycache__
 *.txt
+*.log
+*.testlog

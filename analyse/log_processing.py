@@ -50,14 +50,15 @@ def pool_log(log_file_path):
 
         if lines_per_file[abs_log_file_path] < entry_number:
             # The new entries
-            log_raw_entry = log_raw_entries[lines_per_file[abs_log_file_path]:]
+            log_raw_entries = log_raw_entries[lines_per_file[abs_log_file_path]:]
             lines_per_file[abs_log_file_path] = entry_number
 
             #Return the new entries
             log_entries = map(process_entry, log_raw_entries)
             log_entries = filter(lambda x: x is not None, log_entries)
 
-            return list(log_entries)
+            log_entries = list(log_entries)
+            return log_entries
         else:
             return []
 
