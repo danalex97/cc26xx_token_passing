@@ -4,3 +4,5 @@ symbols.*
 obj_*
 *.map
 *.sky
+__pycache__
+*.txt
