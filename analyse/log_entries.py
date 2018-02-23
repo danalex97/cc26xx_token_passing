@@ -38,6 +38,7 @@ class BroadcastRecvEntry(LogEntry):
             except ValueError:
                 return False
 
+        # Works in Cooja; to test on real hardware
         self.msg = self.msg.replace('\'', ' ')
         self.msg = self.msg.replace(':', ' ')
         values = list(map(float, filter(lambda s: is_float(s), self.msg.split(" "))))
