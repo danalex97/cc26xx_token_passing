@@ -37,7 +37,7 @@ static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
 #if ENABLE_PRIORITY_PACKET
-  uint16_t *datapacket = (uint16_t *)packetbuf_dataptr();
+  uint8_t *datapacket = (uint8_t *)packetbuf_dataptr();
   uint16_t nodeid = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
 
   // When overhear a Priority request, check if this is for itself.

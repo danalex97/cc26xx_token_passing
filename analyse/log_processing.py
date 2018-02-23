@@ -24,7 +24,7 @@ def process_entry(log_raw_entry):
 
 def get_log(log_file_path):
     script_dir = os.path.dirname(__file__)
-    abs_log_file_path = os.path.join(script_dir, log_file_path)
+    abs_log_file_path = os.path.join(script_dir, '..', log_file_path)
 
     with open(abs_log_file_path, "r") as log_file:
         log_raw_entries = log_file.read().split("\n")

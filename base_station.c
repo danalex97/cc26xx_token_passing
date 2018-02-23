@@ -41,19 +41,19 @@ uint8_t getIndex(uint16_t nodeid){
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  uint16_t *data = (uint16_t *)packetbuf_dataptr();
+  uint8_t *data = (uint8_t *)packetbuf_dataptr();
   uint16_t nodeid = from->u8[1]*256 + from->u8[0];
   uint8_t index = getIndex(nodeid);
-  
+
   // When receiving a priority response.
-  if(data[0] == PRIORITY_RESPONSE){    
+  if(data[0] == PRIORITY_RESPONSE){
     printf("[Priority] received from %d.%d: '%d'\n",
-           from->u8[0], from->u8[1], *data);    
+           from->u8[0], from->u8[1], *data);
     return;
   }
- 
+
     printf("[Periodic] received from %d.%d: '%u'\n",
-           from->u8[0], from->u8[1], data[0]);    
+           from->u8[0], from->u8[1], data[0]);
 }
 
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
@@ -63,15 +63,15 @@ static struct broadcast_conn broadcast;
 void init(){
   int i;
   for(i = 0 ; i < 9 ; i++){
-    _nodeid[i] = 0; 
+    _nodeid[i] = 0;
   }
 }
 
 // Generates random seed for all seen nodes between <0 - 30> seconds
 void getRandSeed(){
   int i;
-  for(i = 0 ; i < _nodeid_index ; i++){    
-    _randseed[i] = random_rand() % PRIORITY_INTERVAL_SEC;    
+  for(i = 0 ; i < _nodeid_index ; i++){
+    _randseed[i] = random_rand() % PRIORITY_INTERVAL_SEC;
   }
 }
 
@@ -84,10 +84,10 @@ void getPriorityRequestPacket(uint16_t nodeid){
 }
 
 // Sends a priority request to a sender node with the corresponding node id
-void sendPriorityRequest(uint16_t nodeid) {  
+void sendPriorityRequest(uint16_t nodeid) {
   getPriorityRequestPacket(nodeid);
   packetbuf_copyfrom(_packet, sizeof(_packet));
-  broadcast_send(&broadcast); 
+  broadcast_send(&broadcast);
 }
 
 // Checks whether a priority request is already enqueued
@@ -113,14 +113,14 @@ PROCESS_THREAD(base_station_process, ev, data)
   PROCESS_BEGIN();
 
   broadcast_open(&broadcast, 129, &broadcast_call);
-  
+
 #if ENABLE_PRIORITY_PACKET
   etimer_set(&et_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND);
   etimer_set(&et_second, CLOCK_SECOND);
 #endif
   while(1) {
 
-#if ENABLE_PRIORITY_PACKET   
+#if ENABLE_PRIORITY_PACKET
     PROCESS_YIELD();
     if(ev == PROCESS_EVENT_TIMER && data == &et_priority){
       getRandSeed();
