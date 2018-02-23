@@ -16,6 +16,7 @@ from collections import defaultdict
 from plot import make_canvases
 from plot import Canvas
 import time
+import signal
 
 global interval
 interval = 1000
@@ -62,10 +63,19 @@ def pdr(log_entries):
             pdr_per_node[node_id].append(raport)
     return pdr_per_node
 
+def run_cooja():
+    os.system("rm COOJA.log")
+    os.system("rm COOJA.testlog")
+    pid = subprocess.Popen(['/bin/sh', './run.sh'])
+    time.sleep(2)
+    def sigint_handler(signal, frame):
+        os.system("pkill -9 java")
+        sys.exit(0)
+    signal.signal(signal.SIGINT, sigint_handler)
+
 if __name__ == "__main__":
     log_file = sys.argv[1]
-    # log_entries = get_log(log_file)
-    # pdr_per_node = pdr(log_entries)
+    run_cooja()
 
     fig, axs = make_canvases()
 
