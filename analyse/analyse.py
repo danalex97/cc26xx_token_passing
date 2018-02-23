@@ -77,7 +77,7 @@ if __name__ == "__main__":
     log_file = sys.argv[1]
     run_cooja()
 
-    fig, axs = make_canvases()
+    fig, axs, textbox = make_canvases()
 
     upd_interval = 30
     canvases = {}
@@ -105,6 +105,14 @@ if __name__ == "__main__":
                 pdr_per_node[key][current_index : current_index + upd_interval])
         for key, canvas in canvases.items():
             canvas.draw()
+
+        textbox.set_text("INFO")
+        textbox.append_separator()
+        for key, node_pdr in pdr_per_node.items():
+            avg_pdr = sum(node_pdr) / len(node_pdr)
+            textbox.append_text("Node {} pdr: {}".format(key, avg_pdr))
+        textbox.append_separator()
+        textbox.render()
 
         if slide > current_index:
             current_index += 1

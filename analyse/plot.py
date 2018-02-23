@@ -16,10 +16,48 @@ def make_canvases():
     plt.get_current_fig_manager().resize(
         window.winfo_screenwidth(),
         window.winfo_screenheight())
+    textbox = Textbox(plots[-1])
 
-    fig.delaxes(plots[-1])
+    return fig, plots[:-1], textbox
 
-    return fig, plots
+class Textbox():
+    def __update_ctx(self):
+        if self.ctx != None:
+            self.ctx.set_visible(False)
+
+        x0, xmax = plt.xlim()
+        y0, ymax = plt.ylim()
+        data_width = xmax - x0
+        data_height = ymax - y0
+        px = x0 + data_width * 0.15
+        py = y0 + data_height * 0.5
+
+        self.ctx = self.plot.text(
+            px,
+            py,
+            self.text)
+
+    def __init__(self, plot):
+        self.text = ''
+        self.plot = plot
+        self.ctx = None
+
+        self.__update_ctx()
+        plot.axis('off')
+
+    def set_text(self, text):
+        self.text = text
+        self.text += '\n'
+
+    def append_text(self, text):
+        self.text += text
+        self.text += '\n'
+
+    def append_separator(self):
+        self.text += "====================\n"
+
+    def render(self):
+        self.__update_ctx()
 
 class Canvas():
     def __init__(self, fig, ax, range_size, fig_name="default"):
