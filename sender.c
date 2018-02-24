@@ -103,8 +103,10 @@ PROCESS_THREAD(sender_mote_process, ev, data)
       #endif
 
       // broadcast after random timeout
-      uint16_t wait_time = random_rand() >> 12;
-      rtimer_set(&message_wait, local_time + RTIMER_SECOND / wait_time, 0, send_broadcast, NULL);
+      uint16_t node_id = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
+      uint16_t slot_nbr = node_id - 1;
+      uint16_t slots    = SENDER_NUM;
+      rtimer_set(&message_wait, local_time + RTIMER_SECOND / slots * slot_nbr, 0, send_broadcast, NULL);
 
       // Wait for next event
       etimer_reset(&et_periodic);
