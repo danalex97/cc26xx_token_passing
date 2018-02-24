@@ -67,7 +67,7 @@ def run_cooja():
     os.system("rm COOJA.log")
     os.system("rm COOJA.testlog")
     pid = subprocess.Popen(['/bin/sh', './run.sh'])
-    time.sleep(2)
+    time.sleep(10)
     def sigint_handler(signal, frame):
         os.system("pkill -9 java")
         sys.exit(0)

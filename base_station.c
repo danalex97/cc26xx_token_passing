@@ -10,6 +10,7 @@
 #include "random.h"
 #include "project-conf.h"
 #include <stdio.h>
+#include "net/rime/timesynch.h"
 
 
 // Node ID -> array index
@@ -111,6 +112,10 @@ PROCESS_THREAD(base_station_process, ev, data)
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
+  #if TIMESYNCH_CONF_ENABLED
+    timesynch_init();
+    timesynch_set_authority_level(1);
+  #endif
 
   broadcast_open(&broadcast, 129, &broadcast_call);
 
