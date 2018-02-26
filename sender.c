@@ -61,29 +61,41 @@ void getNextPacket(uint8_t* packet){
   if(count == PRIORITY_RESPONSE)
     count = 1;
 }
+/*---------------------------------------------------------------------------*/
 
+static void
+send_node_id(void *ptr) {
+  /* Send some useless data to join the star topology. */
+  packetbuf_copyfrom(packet, sizeof(packet));
+  broadcast_send(&broadcast);
+}
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(sender_mote_process, ev, data)
 {
   static struct etimer et_periodic;
+  static struct ctimer ct_init;
 
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
-
   broadcast_open(&broadcast, 129, &broadcast_call);
 
-  /* Set Timer*/
-  etimer_set(&et_periodic, CLOCK_SECOND/5);
+  /* Send node id to base station */
+  uint16_t random_timeout = random_rand() % (CLOCK_SECOND * 30);
+  uint16_t inital_timeout = CLOCK_SECOND * 10;
+  ctimer_set(&ct_init, inital_timeout + random_timeout, send_node_id, NULL);
 
-  while(1) {
-    PROCESS_YIELD();
-    if(ev == PROCESS_EVENT_TIMER && data == &et_periodic){
-      getNextPacket(packet);
-      broadcast_message(packet);
-      etimer_reset(&et_periodic);
-    }
-  }
+  // /* Set Timer*/
+  // etimer_set(&et_periodic, CLOCK_SECOND/5);
+  //
+  // while(1) {
+  //   PROCESS_YIELD();
+  //   if(ev == PROCESS_EVENT_TIMER && data == &et_periodic){
+  //     getNextPacket(packet);
+  //     broadcast_message(packet);
+  //     etimer_reset(&et_periodic);
+  //   }
+  // }
 
   PROCESS_END();
 }

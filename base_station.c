@@ -22,6 +22,9 @@ uint8_t _packet[PRIORITY_REQUEST_SIZE];
 uint16_t _counter = 0;
 
 /*---------------------------------------------------------------------------*/
+uint8_t node_count = SENDER_NUM;
+
+/*---------------------------------------------------------------------------*/
 PROCESS(base_station_process, "Broadcast example");
 AUTOSTART_PROCESSES(&base_station_process);
 /*---------------------------------------------------------------------------*/
@@ -44,6 +47,13 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   uint16_t *data = (uint16_t *)packetbuf_dataptr();
   uint16_t nodeid = from->u8[1]*256 + from->u8[0];
   uint8_t index = getIndex(nodeid);
+
+  /* Handling node joins. */
+  if (node_count > 0) {
+    printf("Node join: %u\n", nodeid);
+    node_count -= 1;
+    return;
+  }
 
   // When receiving a priority response.
   if(data[0] == PRIORITY_RESPONSE){
@@ -113,6 +123,11 @@ PROCESS_THREAD(base_station_process, ev, data)
   PROCESS_BEGIN();
 
   broadcast_open(&broadcast, 129, &broadcast_call);
+
+  /* Waiting for sender to join. */
+  while (node_count > 0) {
+    PROCESS_PAUSE();
+  }
 
 #if ENABLE_PRIORITY_PACKET
   etimer_set(&et_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND);
