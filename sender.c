@@ -7,10 +7,10 @@
 
 #include "contiki.h"
 #include "net/rime/rime.h"
-#include "net/rime/timesynch.h"
 #include "random.h"
 #include "project-conf.h"
 #include <stdio.h>
+
 
 /*---------------------------------------------------------------------------*/
 PROCESS(sender_mote_process, "Sender motes");
@@ -37,7 +37,7 @@ static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
 #if ENABLE_PRIORITY_PACKET
-  uint8_t *datapacket = (uint8_t *)packetbuf_dataptr();
+  uint16_t *datapacket = (uint16_t *)packetbuf_dataptr();
   uint16_t nodeid = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
 
   // When overhear a Priority request, check if this is for itself.
@@ -63,18 +63,6 @@ void getNextPacket(uint8_t* packet){
 }
 
 /*---------------------------------------------------------------------------*/
-// Timer for random message wait.
-static struct rtimer message_wait;
-
-static void
-send_broadcast(struct rtimer *timer, void *ptr){
-  getNextPacket(packet);
-  broadcast_message(packet);
-}
-
-//  rtimer_set(&message_wait, RTIMER_NOW() + RTIMER_SECOND / wait_time, 0, send_sync,         NULL);
-
-/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(sender_mote_process, ev, data)
 {
   static struct etimer et_periodic;
@@ -83,32 +71,16 @@ PROCESS_THREAD(sender_mote_process, ev, data)
 
   PROCESS_BEGIN();
 
-  #if TIMESYNCH_CONF_ENABLED
-    timesynch_init();
-    timesynch_set_authority_level(2);
-  #endif
   broadcast_open(&broadcast, 129, &broadcast_call);
 
-  /* Set Timer */
+  /* Set Timer*/
   etimer_set(&et_periodic, CLOCK_SECOND/5);
 
   while(1) {
     PROCESS_YIELD();
     if(ev == PROCESS_EVENT_TIMER && data == &et_periodic){
-      #if TIMESYNCH_CONF_ENABLED
-        rtimer_clock_t global_time = timesynch_time();
-        rtimer_clock_t local_time  = timesynch_time_to_rtimer(global_time);
-      #else
-        rtimer_clock_t local_time = RTIMER_NOW();
-      #endif
-
-      // broadcast after random timeout
-      uint16_t node_id = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
-      uint16_t slot_nbr = node_id - 1;
-      uint16_t slots    = SENDER_NUM;
-      rtimer_set(&message_wait, local_time + RTIMER_SECOND / slots * slot_nbr, 0, send_broadcast, NULL);
-
-      // Wait for next event
+      getNextPacket(packet);
+      broadcast_message(packet);
       etimer_reset(&et_periodic);
     }
   }

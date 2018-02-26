@@ -10,7 +10,6 @@
 #include "random.h"
 #include "project-conf.h"
 #include <stdio.h>
-#include "net/rime/timesynch.h"
 
 
 // Node ID -> array index
@@ -42,7 +41,7 @@ uint8_t getIndex(uint16_t nodeid){
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  uint8_t *data = (uint8_t *)packetbuf_dataptr();
+  uint16_t *data = (uint16_t *)packetbuf_dataptr();
   uint16_t nodeid = from->u8[1]*256 + from->u8[0];
   uint8_t index = getIndex(nodeid);
 
@@ -112,10 +111,6 @@ PROCESS_THREAD(base_station_process, ev, data)
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
-  #if TIMESYNCH_CONF_ENABLED
-    timesynch_init();
-    timesynch_set_authority_level(1);
-  #endif
 
   broadcast_open(&broadcast, 129, &broadcast_call);
 
