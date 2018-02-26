@@ -16,6 +16,8 @@
 #define BASE_REQUEST                    0x0101
 #define BASE_REQUEST_0                    0x01
 #define BASE_REQUEST_1                    0x01
+
+#define MAX_SENDER_QUEUE                     5
 /*---------------------------------------------------------------------------*/
 
 /* Change to match your configuration */
