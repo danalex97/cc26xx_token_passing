@@ -8,3 +8,7 @@ __pycache__
 *.txt
 *.log
 *.testlog
+*.bin
+*.elf
+*.hex
+*.srf06-cc26xx
