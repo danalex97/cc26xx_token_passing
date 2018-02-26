@@ -24,6 +24,16 @@ uint16_t _counter = 0;
 /*---------------------------------------------------------------------------*/
 uint8_t node_count = SENDER_NUM;
 
+enum state_t {
+  Requesting,
+  Priority,
+  Receiving
+};
+
+enum state_t state = Requesting; // initial state?
+
+// Current index of the node in the Round-Robin token passing
+uint8_t current_index = 0;
 /*---------------------------------------------------------------------------*/
 PROCESS(base_station_process, "Broadcast example");
 AUTOSTART_PROCESSES(&base_station_process);
@@ -110,7 +120,18 @@ void checkPriorty(){
     }
   }
 }
+/*---------------------------------------------------------------------------*/
+static void
+send_request(uint16_t nodeid) {
+  _packet[0] = BASE_REQUEST_0;
+  _packet[1] = BASE_REQUEST_1;
+  _packet[2] = nodeid % 256;
+  _packet[3] = nodeid / 256;
 
+  printf("Sending base request to: %u\n", nodeid);
+  packetbuf_copyfrom(_packet, sizeof(_packet));
+  broadcast_send(&broadcast);
+}
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(base_station_process, ev, data)
@@ -134,6 +155,20 @@ PROCESS_THREAD(base_station_process, ev, data)
   etimer_set(&et_second, CLOCK_SECOND);
 #endif
   while(1) {
+    if (state == Priority) {
+      // AND if buffer is empty
+      state = Requesting;
+    }
+
+    if (state == Requesting) {
+      send_request(_nodeid[current_index]);
+
+      current_index = (current_index + 1) % SENDER_NUM;
+      state = Receiving;
+
+      // Yield the process so we can receive packets
+      PROCESS_YIELD();
+    }
 
 #if ENABLE_PRIORITY_PACKET
     PROCESS_YIELD();

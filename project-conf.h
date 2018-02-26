@@ -13,6 +13,10 @@
 #define NETSTACK_CONF_RDC     nullrdc_driver // Define the RDC driver to use.
 
 /*---------------------------------------------------------------------------*/
+#define BASE_REQUEST                    0x0101
+#define BASE_REQUEST_0                    0x01
+#define BASE_REQUEST_1                    0x01
+/*---------------------------------------------------------------------------*/
 
 /* Change to match your configuration */
 #define IEEE802154_CONF_PANID            0xABCD
