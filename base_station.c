@@ -61,19 +61,26 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   /* Handling node joins. */
   if (node_count > 0) {
     printf("Node join: %u\n", nodeid);
-    node_count -= 1;
+    node_count--;
     return;
   }
 
-  // When receiving a priority response.
-  if(data[0] == PRIORITY_RESPONSE){
-    printf("[Priority] received from %d.%d: '%d'\n",
-           from->u8[0], from->u8[1], *data);
-    return;
+  if (data[1] == SENDER_ACK) {
+    // When receiving a priority response.
+    if(data[0] == PRIORITY_RESPONSE){
+      printf("[Priority] received from %d.%d: '%d'\n",
+             from->u8[0], from->u8[1], *data);
+      return;
+    }
+
+      printf("[Periodic] received from %d.%d: '%u'\n",
+             from->u8[0], from->u8[1], data[0]);
   }
 
-    printf("[Periodic] received from %d.%d: '%u'\n",
-           from->u8[0], from->u8[1], data[0]);
+  if (data[1] == SENDER_NACK) {
+    printf("Received nack from %d.%d.\n",
+      from->u8[0], from->u8[1]);
+  }
 }
 
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};

@@ -17,6 +17,9 @@
 #define BASE_REQUEST_0                    0x01
 #define BASE_REQUEST_1                    0x01
 
+#define SENDER_NACK                       0x01
+#define SENDER_ACK                        0x00
+
 #define MAX_SENDER_QUEUE                     5
 /*---------------------------------------------------------------------------*/
 
@@ -33,7 +36,9 @@
 #define PRIORITY_REQUEST                 0x0000
 #define PRIORITY_RESPONSE                0xFFFF
 #define SENDER_NUM                            9
-#define PACKAGE_SIZE                          2
+
+// To allow control messages
+#define PACKAGE_SIZE                          4
 #define PRIORITY_REQUEST_SIZE                 4
 /*---------------------------------------------------------------------------*/
 #endif /* PROJECT_CONF_H_ */

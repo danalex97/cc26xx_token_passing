@@ -35,13 +35,33 @@ pop_packet(void) {
   memcpy(packets_to_send, packets_to_send + sizeof(packet), sizeof(packet) * (queue_size - 1));
   queue_size--;
 }
-/*---------------------------------------------------------------------------*/
-void getPriorityPacket(uint8_t* packet){
-  packet[1] = 255;
-  packet[0] = 255;
+
+static void
+generate_nack(uint8_t* packet) {
+  packet[3] = 0;
+  packet[2] = SENDER_NACK;
 }
 
-void broadcast_message(uint8_t* packet){
+static void
+getPriorityPacket(uint8_t* packet){
+  packet[1] = 255;
+  packet[0] = 255;
+
+  packet[3] = 0;
+  packet[2] = SENDER_ACK;
+}
+
+static void
+broadcast_control_message(){
+  packetbuf_copyfrom(packet, sizeof(packet));
+  broadcast_send(&broadcast);
+#if DEBUG_ENABLED
+  printf("NACK %u\n", packet[3] * 256 + packet[2]);
+#endif
+}
+/*---------------------------------------------------------------------------*/
+
+void broadcast_message(){
   packetbuf_copyfrom(packet, sizeof(packet));
   broadcast_send(&broadcast);
 #if DEBUG_ENABLED
@@ -61,7 +81,11 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 
     if (queue_size > 0) {
       pop_packet();
-      broadcast_message(packet);
+      broadcast_message();
+    } else {
+      // If no response is on, generate a nack
+      generate_nack(packet);
+      broadcast_control_message();
     }
   }
 
@@ -72,7 +96,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
     printf("Received priority request with data packet %u for node_id %u\n", datapacket[1], nodeid);
 #endif
     getPriorityPacket(packet);
-    broadcast_message(packet);
+    broadcast_message();
   }
 #endif
 }
@@ -86,6 +110,9 @@ void getNextPacket(uint8_t* packet){
   count++;
   if(count == PRIORITY_RESPONSE)
     count = 1;
+
+  packet[3] = 0;
+  packet[2] = SENDER_ACK;
 }
 /*---------------------------------------------------------------------------*/
 
