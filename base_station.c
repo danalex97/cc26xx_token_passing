@@ -81,6 +81,9 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
     printf("Received nack from %d.%d.\n",
       from->u8[0], from->u8[1]);
   }
+
+  state = Priority;
+  process_post(&base_station_process, PROCESS_EVENT_CONTINUE, NULL);
 }
 
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
