@@ -25,6 +25,9 @@ struct sender_packet_t packet;
 /*---------------------------------------------------------------------------*/
 static void
 push_packet(void) {
+  if (queue_size >= MAX_SENDER_QUEUE) {
+    printf("Queue overflow\n");
+  }
   memcpy(&packets_to_send[queue_size], &packet, sizeof(packet));
   queue_size++;
 }
@@ -32,8 +35,7 @@ push_packet(void) {
 /* Pop enqueued packet to packet. */
 static void
 pop_packet(void) {
-  memcpy(&packet, &packets_to_send[0], sizeof(packet));
-  memcpy(&packets_to_send, &packets_to_send[1], sizeof(packet) * (queue_size - 1));
+  memcpy(&packet, &packets_to_send[queue_size - 1], sizeof(packet));
   queue_size--;
 }
 

@@ -168,6 +168,7 @@ PROCESS_THREAD(base_station_process, ev, data)
     }
 
     if (state == Requesting) {
+      // Send request
       send_request(_nodeid[current_index]);
 
       current_index = (current_index + 1) % SENDER_NUM;
