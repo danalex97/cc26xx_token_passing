@@ -11,10 +11,8 @@
 #include "project-conf.h"
 #include <stdio.h>
 #include "packet.h"
+#include "queue.h"
 
-/*---------------------------------------------------------------------------*/
-struct sender_packet_t packets_to_send[MAX_SENDER_QUEUE];
-uint8_t queue_size = 0;
 /*---------------------------------------------------------------------------*/
 PROCESS(sender_mote_process, "Sender motes");
 AUTOSTART_PROCESSES(&sender_mote_process);
@@ -23,21 +21,6 @@ static struct broadcast_conn broadcast;
 uint16_t count = 1;
 struct sender_packet_t packet;
 /*---------------------------------------------------------------------------*/
-static void
-push_packet(void) {
-  if (queue_size >= MAX_SENDER_QUEUE) {
-    printf("Queue overflow\n");
-  }
-  memcpy(&packets_to_send[queue_size], &packet, sizeof(packet));
-  queue_size++;
-}
-
-/* Pop enqueued packet to packet. */
-static void
-pop_packet(void) {
-  memcpy(&packet, &packets_to_send[queue_size - 1], sizeof(packet));
-  queue_size--;
-}
 
 static void
 generate_nack(struct sender_packet_t* packet) {
@@ -79,8 +62,8 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   if(data->request_type == BASE_REQUEST && data->nodeid == nodeid) {
     printf("Received base request with for node_id %u\n", nodeid);
 
-    if (queue_size > 0) {
-      pop_packet();
+    if (queue_size() > 0) {
+      pop_packet(&packet);
       broadcast_message();
     } else {
       // If no response is on, generate a nack
@@ -130,6 +113,7 @@ PROCESS_THREAD(sender_mote_process, ev, data)
 
   PROCESS_BEGIN();
   broadcast_open(&broadcast, 129, &broadcast_call);
+  init_queue(MAX_SENDER_QUEUE, sizeof(struct sender_packet_t));
 
   /* Send node id to base station */
   uint16_t random_timeout = random_rand() % (CLOCK_SECOND * 30);
@@ -152,7 +136,7 @@ PROCESS_THREAD(sender_mote_process, ev, data)
     PROCESS_YIELD();
     if(ev == PROCESS_EVENT_TIMER && data == &et_periodic){
       getNextPacket(&packet);
-      push_packet();
+      push_packet(&packet);
 
       etimer_reset(&et_periodic);
     }
