@@ -114,6 +114,7 @@ void getPriorityRequestPacket(uint16_t nodeid){
 
 // Sends a priority request to a sender node with the corresponding node id
 void addPriorityRequest(uint16_t nodeid) {
+  printf("push %u\n", nodeid);
   getPriorityRequestPacket(nodeid);
 
   /* Enque the priority request*/
@@ -135,7 +136,7 @@ void checkPriority(){
   int i;
   for(i = 0 ; i < _nodeid_index ; i++){
     if(_randseed[i] == _counter) {
-      // addPriorityRequest(_nodeid[i]);
+      addPriorityRequest(_nodeid[i]);
     }
   }
 }
@@ -169,9 +170,12 @@ PROCESS_THREAD(base_station_process, ev, data)
   }
   printf("%s\n", "Nodes registered.");
 
+  // Inital random seed.
+  getRandSeed();
+
 #if ENABLE_PRIORITY_PACKET
-  etimer_set(&et_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND);
   etimer_set(&et_second, CLOCK_SECOND);
+  etimer_set(&et_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND);
 #endif
   while(1) {
     if (state == Priority) {
@@ -180,15 +184,14 @@ PROCESS_THREAD(base_station_process, ev, data)
 
         state = Requesting;
       }
-// #if ENABLE_PRIORITY_PACKET
-//       else {
-//         // Send a priority request
-//         sendPriorityRequest();
-//
-//
-//         state = Receiving;
-//       }
-// #endif
+#if ENABLE_PRIORITY_PACKET
+      else {
+        // Send a priority request
+        sendPriorityRequest();
+
+        state = Receiving;
+      }
+#endif
     }
 
     if (state == Requesting) {
@@ -212,7 +215,8 @@ PROCESS_THREAD(base_station_process, ev, data)
 
       PROCESS_YIELD();
     } else if(ev == PROCESS_EVENT_TIMER && data == &et_second){
-      checkPriority();
+      printf("Check priority\n");
+      //checkPriority();
       _counter++;
       etimer_reset(&et_second);
 
