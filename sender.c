@@ -10,9 +10,10 @@
 #include "random.h"
 #include "project-conf.h"
 #include <stdio.h>
+#include "packet.h"
 
 /*---------------------------------------------------------------------------*/
-uint8_t packets_to_send[MAX_SENDER_QUEUE][PACKAGE_SIZE];
+struct packet_t packets_to_send[MAX_SENDER_QUEUE];
 uint8_t queue_size = 0;
 /*---------------------------------------------------------------------------*/
 PROCESS(sender_mote_process, "Sender motes");
@@ -20,49 +21,49 @@ AUTOSTART_PROCESSES(&sender_mote_process);
 /*---------------------------------------------------------------------------*/
 static struct broadcast_conn broadcast;
 uint16_t count = 1;
-uint8_t packet[PACKAGE_SIZE];
+struct packet_t packet;
 /*---------------------------------------------------------------------------*/
 static void
 push_packet(void) {
-  memcpy(packets_to_send[queue_size], packet, sizeof(packet));
+  memcpy(&packets_to_send[queue_size], &packet, sizeof(packet));
   queue_size++;
 }
 
 /* Pop enqueued packet to packet. */
 static void
 pop_packet(void) {
-  memcpy(packet, packets_to_send[0], sizeof(packet));
-  memcpy(packets_to_send, packets_to_send + sizeof(packet), sizeof(packet) * (queue_size - 1));
+  memcpy(&packet, &packets_to_send[0], sizeof(packet));
+  memcpy(&packets_to_send, &packets_to_send + sizeof(packet), sizeof(packet) * (queue_size - 1));
   queue_size--;
 }
 
 static void
-generate_nack(uint8_t* packet) {
-  packet[3] = 0;
-  packet[2] = SENDER_NACK;
+generate_nack(struct packet_t* packet) {
+  packet->type1 = 0;
+  packet->type0 = SENDER_NACK;
 }
 
 static void
-getPriorityPacket(uint8_t* packet){
-  packet[1] = 255;
-  packet[0] = 255;
+getPriorityPacket(struct packet_t* packet){
+  packet->packet_1 = 255;
+  packet->packet_0 = 255;
 
-  packet[3] = 0;
-  packet[2] = SENDER_ACK;
+  packet->type1 = 0;
+  packet->type0 = SENDER_ACK;
 }
 
 static void
 broadcast_control_message(){
-  packetbuf_copyfrom(packet, sizeof(packet));
+  packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 #if DEBUG_ENABLED
-  printf("NACK %u\n", packet[3] * 256 + packet[2]);
+  printf("NACK %u\n", packet.type1 * 256 + packet.type0);
 #endif
 }
 /*---------------------------------------------------------------------------*/
 
 void broadcast_message(){
-  packetbuf_copyfrom(packet, sizeof(packet));
+  packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 #if DEBUG_ENABLED
   printf("broadcast message sent: %d\n", count);
@@ -84,7 +85,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
       broadcast_message();
     } else {
       // If no response is on, generate a nack
-      generate_nack(packet);
+      generate_nack(&packet);
       broadcast_control_message();
     }
   }
@@ -104,22 +105,22 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 
 // Generates a packet with the counter value.
-void getNextPacket(uint8_t* packet){
-  packet[1] = count / 256;
-  packet[0] = count % 256;
+void getNextPacket(struct packet_t* packet){
+  packet->packet_1 = count / 256;
+  packet->packet_0 = count % 256;
   count++;
   if(count == PRIORITY_RESPONSE)
     count = 1;
 
-  packet[3] = 0;
-  packet[2] = SENDER_ACK;
+  packet->type1 = 0;
+  packet->type0 = SENDER_ACK;
 }
 /*---------------------------------------------------------------------------*/
 
 static void
 send_node_id(void *ptr) {
   /* Send some useless data to join the star topology. */
-  packetbuf_copyfrom(packet, sizeof(packet));
+  packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 }
 /*---------------------------------------------------------------------------*/
@@ -153,7 +154,7 @@ PROCESS_THREAD(sender_mote_process, ev, data)
   while(1) {
     PROCESS_YIELD();
     if(ev == PROCESS_EVENT_TIMER && data == &et_periodic){
-      getNextPacket(packet);
+      getNextPacket(&packet);
       push_packet();
 
       etimer_reset(&et_periodic);
