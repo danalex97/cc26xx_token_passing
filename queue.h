@@ -28,7 +28,7 @@ push_packet(void *packet) {
 /* Pop enqueued packet to packet. */
 void
 pop_packet(void *packet) {
-  memcpy(packet, &queue[_queue_size - _size], _size);
+  memcpy(packet, &queue[(_queue_size - 1) * _size], _size);
   _queue_size--;
 }
 

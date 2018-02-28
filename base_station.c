@@ -114,18 +114,18 @@ void getPriorityRequestPacket(uint16_t nodeid){
 
 // Sends a priority request to a sender node with the corresponding node id
 void addPriorityRequest(uint16_t nodeid) {
-  printf("push %u\n", nodeid);
   getPriorityRequestPacket(nodeid);
 
   /* Enque the priority request*/
   push_packet(&_packet);
+  // printf("Pushing priority request to %u.\n", _packet.nodeid);
 }
 
 // Sends a priority request to a sender node with the corresponding node id
 void sendPriorityRequest() {
   pop_packet(&_packet);
 
-  printf("Sending priority request to %d.\n", _packet.nodeid);
+  printf("Sending priority request to %u.\n", _packet.nodeid);
   packetbuf_copyfrom(&_packet, sizeof(_packet));
   broadcast_send(&broadcast);
 }
@@ -190,6 +190,9 @@ PROCESS_THREAD(base_station_process, ev, data)
         sendPriorityRequest();
 
         state = Receiving;
+
+        // Yield the process so we can receive packets
+        PROCESS_YIELD();
       }
 #endif
     }
@@ -211,12 +214,12 @@ PROCESS_THREAD(base_station_process, ev, data)
       getRandSeed();
       etimer_reset(&et_priority);
       _counter = 0;
-      printf("Generating random seed.\n");
+      // printf("Generating random seed.\n");
 
       PROCESS_YIELD();
     } else if(ev == PROCESS_EVENT_TIMER && data == &et_second){
-      printf("Check priority\n");
-      //checkPriority();
+      // printf("Check priority\n");
+      checkPriority();
       _counter++;
       etimer_reset(&et_second);
 
