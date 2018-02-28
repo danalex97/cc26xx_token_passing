@@ -69,8 +69,12 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   if (data->type == SENDER_ACK) {
     // When receiving a priority response.
     if(data->packet == PRIORITY_RESPONSE){
-      printf("[Priority] received from %d.%d: '%u'\n",
+      printf("[Priority] received from %d.%d.'\n",
              from->u8[0], from->u8[1], data->packet);
+
+      // Notify main process
+      state = Priority;
+      process_post(&base_station_process, PROCESS_EVENT_CONTINUE, NULL);
       return;
     }
 
@@ -83,6 +87,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
       from->u8[0], from->u8[1]);
   }
 
+  // Notify main process
   state = Priority;
   process_post(&base_station_process, PROCESS_EVENT_CONTINUE, NULL);
 }
@@ -214,7 +219,7 @@ PROCESS_THREAD(base_station_process, ev, data)
       getRandSeed();
       etimer_reset(&et_priority);
       _counter = 0;
-      // printf("Generating random seed.\n");
+      printf("Generating random seed.\n");
 
       PROCESS_YIELD();
     } else if(ev == PROCESS_EVENT_TIMER && data == &et_second){
