@@ -10,6 +10,7 @@
 #include "random.h"
 #include "project-conf.h"
 #include <stdio.h>
+#include "packet.h"
 
 
 // Node ID -> array index
@@ -18,7 +19,7 @@ uint16_t _nodeid[SENDER_NUM];
 
 // For priority testing
 uint16_t _randseed[SENDER_NUM];
-uint8_t _packet[PRIORITY_REQUEST_SIZE];
+struct base_packet_t _packet;
 uint16_t _counter = 0;
 
 /*---------------------------------------------------------------------------*/
@@ -107,16 +108,16 @@ void getRandSeed(){
 
 // Set the first 2 bytes to 0 for priority messages and the last 2 bytes to node id
 void getPriorityRequestPacket(uint16_t nodeid){
-  _packet[0] = 0;
-  _packet[1] = 0;
-  _packet[2] = nodeid % 256;
-  _packet[3] = nodeid / 256;
+  _packet.request_type = PRIORITY_REQUEST;
+
+  _packet.nodeid_0 = nodeid % 256;
+  _packet.nodeid_1 = nodeid / 256;
 }
 
 // Sends a priority request to a sender node with the corresponding node id
 void sendPriorityRequest(uint16_t nodeid) {
   getPriorityRequestPacket(nodeid);
-  packetbuf_copyfrom(_packet, sizeof(_packet));
+  packetbuf_copyfrom(&_packet, sizeof(_packet));
   broadcast_send(&broadcast);
 }
 
@@ -133,13 +134,12 @@ void checkPriorty(){
 /*---------------------------------------------------------------------------*/
 static void
 send_request(uint16_t nodeid) {
-  _packet[0] = BASE_REQUEST_0;
-  _packet[1] = BASE_REQUEST_1;
-  _packet[2] = nodeid % 256;
-  _packet[3] = nodeid / 256;
+  _packet.request_type = BASE_REQUEST;
+  _packet.nodeid_0 = nodeid % 256;
+  _packet.nodeid_1 = nodeid / 256;
 
   printf("Sending base request to: %u\n", nodeid);
-  packetbuf_copyfrom(_packet, sizeof(_packet));
+  packetbuf_copyfrom(&_packet, sizeof(_packet));
   broadcast_send(&broadcast);
 }
 

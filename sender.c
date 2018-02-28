@@ -13,7 +13,7 @@
 #include "packet.h"
 
 /*---------------------------------------------------------------------------*/
-struct packet_t packets_to_send[MAX_SENDER_QUEUE];
+struct sender_packet_t packets_to_send[MAX_SENDER_QUEUE];
 uint8_t queue_size = 0;
 /*---------------------------------------------------------------------------*/
 PROCESS(sender_mote_process, "Sender motes");
@@ -21,7 +21,7 @@ AUTOSTART_PROCESSES(&sender_mote_process);
 /*---------------------------------------------------------------------------*/
 static struct broadcast_conn broadcast;
 uint16_t count = 1;
-struct packet_t packet;
+struct sender_packet_t packet;
 /*---------------------------------------------------------------------------*/
 static void
 push_packet(void) {
@@ -38,13 +38,13 @@ pop_packet(void) {
 }
 
 static void
-generate_nack(struct packet_t* packet) {
+generate_nack(struct sender_packet_t* packet) {
   packet->type1 = 0;
   packet->type0 = SENDER_NACK;
 }
 
 static void
-getPriorityPacket(struct packet_t* packet){
+getPriorityPacket(struct sender_packet_t* packet){
   packet->packet_1 = 255;
   packet->packet_0 = 255;
 
@@ -105,7 +105,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 
 // Generates a packet with the counter value.
-void getNextPacket(struct packet_t* packet){
+void getNextPacket(struct sender_packet_t* packet){
   packet->packet_1 = count / 256;
   packet->packet_0 = count % 256;
   count++;
