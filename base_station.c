@@ -109,9 +109,7 @@ void getRandSeed(){
 // Set the first 2 bytes to 0 for priority messages and the last 2 bytes to node id
 void getPriorityRequestPacket(uint16_t nodeid){
   _packet.request_type = PRIORITY_REQUEST;
-
-  _packet.nodeid_0 = nodeid % 256;
-  _packet.nodeid_1 = nodeid / 256;
+  _packet.nodeid = nodeid;
 }
 
 // Sends a priority request to a sender node with the corresponding node id
@@ -135,8 +133,7 @@ void checkPriorty(){
 static void
 send_request(uint16_t nodeid) {
   _packet.request_type = BASE_REQUEST;
-  _packet.nodeid_0 = nodeid % 256;
-  _packet.nodeid_1 = nodeid / 256;
+  _packet.nodeid = nodeid;
 
   printf("Sending base request to: %u\n", nodeid);
   packetbuf_copyfrom(&_packet, sizeof(_packet));

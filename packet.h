@@ -3,35 +3,18 @@
 
 struct __attribute__((packed, aligned(1))) sender_packet_t {
   /* Same packet identification as provided. */
-  union {
-    uint16_t packet;
-    struct {
-      uint8_t packet_0;
-      uint8_t packet_1;
-    };
-  };
+  uint16_t packet;
 
   /* Additional data. */
-  union {
-    uint16_t type;
-    struct {
-      uint8_t type0;
-      uint8_t type1;
-    };
-  };
+  uint16_t type;
 };
 
 struct __attribute__((packed, aligned(1))) base_packet_t {
   /* Same packet identification as provided. */
   uint16_t request_type;
+  uint16_t nodeid;
 
-  union {
-    uint16_t nodeid;
-    struct {
-      uint8_t nodeid_0;
-      uint8_t nodeid_1;
-    };
-  };
+  /* Additional data. */
 };
 
 #endif

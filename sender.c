@@ -54,7 +54,7 @@ broadcast_control_message(){
   packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 #if DEBUG_ENABLED
-  printf("NACK %u\n", packet.type1 * 256 + packet.type0);
+  printf("NACK %u\n", packet.type);
 #endif
 }
 /*---------------------------------------------------------------------------*/
