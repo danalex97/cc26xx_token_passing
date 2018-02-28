@@ -2,11 +2,9 @@
 #define _QUEUE_H_
 
 #include "contiki.h"
-#include "queue.h"
 #include <stdio.h>
 
 #define MAX_QUEUE_SIZE 20
-
 static uint8_t _queue_size = 0;
 static uint8_t _capacity;
 static uint8_t _size;

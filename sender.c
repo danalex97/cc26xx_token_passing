@@ -76,7 +76,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   // When overhear a Priority request, check if this is for itself.
   if(data->request_type == PRIORITY_REQUEST && data->nodeid == nodeid){
 #if DEBUG_ENABLED
-    printf("Received priority request with data packet %u for node_id %u\n", datapacket[1], nodeid);
+    printf("Received priority request with data packet %u for node_id %u\n", data->request_type, nodeid);
 #endif
     getPriorityPacket(&packet);
     broadcast_message();

@@ -11,7 +11,7 @@
 #include "project-conf.h"
 #include <stdio.h>
 #include "packet.h"
-
+#include "queue.h"
 
 // Node ID -> array index
 uint8_t _nodeid_index = 0;
@@ -57,7 +57,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
   struct sender_packet_t *data = (struct sender_packet_t *)packetbuf_dataptr();
   uint16_t nodeid = from->u8[1]*256 + from->u8[0];
-  uint8_t index = getIndex(nodeid);
+  getIndex(nodeid);
 
   /* Handling node joins. */
   if (node_count > 0) {
@@ -113,19 +113,29 @@ void getPriorityRequestPacket(uint16_t nodeid){
 }
 
 // Sends a priority request to a sender node with the corresponding node id
-void sendPriorityRequest(uint16_t nodeid) {
+void addPriorityRequest(uint16_t nodeid) {
   getPriorityRequestPacket(nodeid);
+
+  /* Enque the priority request*/
+  push_packet(&_packet);
+}
+
+// Sends a priority request to a sender node with the corresponding node id
+void sendPriorityRequest() {
+  pop_packet(&_packet);
+
+  printf("Sending priority request to %d.\n", _packet.nodeid);
   packetbuf_copyfrom(&_packet, sizeof(_packet));
   broadcast_send(&broadcast);
 }
 
+
 // Checks whether a priority request is already enqueued
-void checkPriorty(){
+void checkPriority(){
   int i;
   for(i = 0 ; i < _nodeid_index ; i++){
     if(_randseed[i] == _counter) {
-      printf("Sending priority request to %d.\n", _nodeid[i]);
-      sendPriorityRequest(_nodeid[i]);
+      // addPriorityRequest(_nodeid[i]);
     }
   }
 }
@@ -151,11 +161,13 @@ PROCESS_THREAD(base_station_process, ev, data)
   PROCESS_BEGIN();
 
   broadcast_open(&broadcast, 129, &broadcast_call);
+  init_queue(MAX_BASE_QUEUE, sizeof(struct base_packet_t));
 
   /* Waiting for sender to join. */
   while (node_count > 0) {
     PROCESS_PAUSE();
   }
+  printf("%s\n", "Nodes registered.");
 
 #if ENABLE_PRIORITY_PACKET
   etimer_set(&et_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND);
@@ -163,8 +175,20 @@ PROCESS_THREAD(base_station_process, ev, data)
 #endif
   while(1) {
     if (state == Priority) {
-      // AND if buffer is empty
-      state = Requesting;
+      if (queue_size() == 0) {
+        // If no priority request is pending, send a normal request
+
+        state = Requesting;
+      }
+// #if ENABLE_PRIORITY_PACKET
+//       else {
+//         // Send a priority request
+//         sendPriorityRequest();
+//
+//
+//         state = Receiving;
+//       }
+// #endif
     }
 
     if (state == Requesting) {
@@ -172,6 +196,7 @@ PROCESS_THREAD(base_station_process, ev, data)
       send_request(_nodeid[current_index]);
 
       current_index = (current_index + 1) % SENDER_NUM;
+
       state = Receiving;
 
       // Yield the process so we can receive packets
@@ -179,18 +204,20 @@ PROCESS_THREAD(base_station_process, ev, data)
     }
 
 #if ENABLE_PRIORITY_PACKET
-    PROCESS_YIELD();
     if(ev == PROCESS_EVENT_TIMER && data == &et_priority){
       getRandSeed();
       etimer_reset(&et_priority);
       _counter = 0;
       printf("Generating random seed.\n");
+
+      PROCESS_YIELD();
     } else if(ev == PROCESS_EVENT_TIMER && data == &et_second){
-      checkPriorty();
+      checkPriority();
       _counter++;
       etimer_reset(&et_second);
-    }
 
+      PROCESS_YIELD();
+    }
 #endif
 
   }
