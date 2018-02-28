@@ -33,7 +33,7 @@ push_packet(void) {
 static void
 pop_packet(void) {
   memcpy(&packet, &packets_to_send[0], sizeof(packet));
-  memcpy(&packets_to_send, &packets_to_send + sizeof(packet), sizeof(packet) * (queue_size - 1));
+  memcpy(&packets_to_send, &packets_to_send[1], sizeof(packet) * (queue_size - 1));
   queue_size--;
 }
 
@@ -73,11 +73,11 @@ void broadcast_message(){
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  uint16_t *datapacket = (uint16_t *)packetbuf_dataptr();
+  struct base_packet_t *data = (struct base_packet_t *)packetbuf_dataptr();
   uint16_t nodeid = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
 
   /* Receive base request */
-  if(datapacket[0] == BASE_REQUEST && datapacket[1] == nodeid) {
+  if(data->request_type == BASE_REQUEST && data->nodeid == nodeid) {
     printf("Received base request with for node_id %u\n", nodeid);
 
     if (queue_size > 0) {
@@ -92,11 +92,11 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 
 #if ENABLE_PRIORITY_PACKET
   // When overhear a Priority request, check if this is for itself.
-  if(datapacket[0] == PRIORITY_REQUEST && datapacket[1] == nodeid){
+  if(data->request_type == PRIORITY_REQUEST && data->nodeid == nodeid){
 #if DEBUG_ENABLED
     printf("Received priority request with data packet %u for node_id %u\n", datapacket[1], nodeid);
 #endif
-    getPriorityPacket(packet);
+    getPriorityPacket(&packet);
     broadcast_message();
   }
 #endif

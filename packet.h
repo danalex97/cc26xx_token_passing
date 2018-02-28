@@ -12,8 +12,13 @@ struct __attribute__((packed, aligned(1))) sender_packet_t {
   };
 
   /* Additional data. */
-  uint8_t type0;
-  uint8_t type1;
+  union {
+    uint16_t type;
+    struct {
+      uint8_t type0;
+      uint8_t type1;
+    };
+  };
 };
 
 struct __attribute__((packed, aligned(1))) base_packet_t {

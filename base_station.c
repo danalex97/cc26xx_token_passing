@@ -55,7 +55,7 @@ uint8_t getIndex(uint16_t nodeid){
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  uint16_t *data = (uint16_t *)packetbuf_dataptr();
+  struct sender_packet_t *data = (struct sender_packet_t *)packetbuf_dataptr();
   uint16_t nodeid = from->u8[1]*256 + from->u8[0];
   uint8_t index = getIndex(nodeid);
 
@@ -66,19 +66,19 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
     return;
   }
 
-  if (data[1] == SENDER_ACK) {
+  if (data->type == SENDER_ACK) {
     // When receiving a priority response.
-    if(data[0] == PRIORITY_RESPONSE){
-      printf("[Priority] received from %d.%d: '%d'\n",
-             from->u8[0], from->u8[1], *data);
+    if(data->packet == PRIORITY_RESPONSE){
+      printf("[Priority] received from %d.%d: '%u'\n",
+             from->u8[0], from->u8[1], data->packet);
       return;
     }
 
-      printf("[Periodic] received from %d.%d: '%u'\n",
-             from->u8[0], from->u8[1], data[0]);
+    printf("[Periodic] received from %d.%d: '%u'\n",
+           from->u8[0], from->u8[1], data->packet);
   }
 
-  if (data[1] == SENDER_NACK) {
+  if (data->type == SENDER_NACK) {
     printf("Received nack from %d.%d.\n",
       from->u8[0], from->u8[1]);
   }
