@@ -17,8 +17,8 @@
 #define BASE_REQUEST_0                    0x01
 #define BASE_REQUEST_1                    0x01
 
-#define SENDER_NACK                       0x01
-#define SENDER_ACK                        0x00
+#define SENDER_NACK                     0x0001
+#define SENDER_ACK                      0x0000
 
 #define MAX_SENDER_QUEUE                     5
 /*---------------------------------------------------------------------------*/
