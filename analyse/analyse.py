@@ -108,6 +108,13 @@ if __name__ == "__main__":
 
         textbox.set_text("INFO")
         textbox.append_separator()
+
+        # Filter old log entries
+        useful_log_entries = [e for e in log_entries
+            if  e.timestamp > 60000
+            and e.timestamp < (current_index + upd_interval) * 1000]
+        pdr_per_node = pdr(useful_log_entries)
+
         for key, node_pdr in pdr_per_node.items():
             avg_pdr = sum(node_pdr) / len(node_pdr)
             textbox.append_text("Node {} pdr: {}".format(key, avg_pdr))
