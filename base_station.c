@@ -70,7 +70,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   if (data->type == SENDER_ACK) {
     // When receiving a priority response.
     if(data->packet == PRIORITY_RESPONSE){
-      printf("[Priority] received from %d.%d.'\n",
+      printf("[Priority] received from %d.%d.\n",
              from->u8[0], from->u8[1]);
 
       // Notify main process
@@ -152,7 +152,7 @@ send_request(uint16_t nodeid) {
   _packet.request_type = BASE_REQUEST;
   _packet.nodeid = nodeid;
 
-  printf("Sending base request to: %u\n", nodeid);
+  printf("Sending base request to: %u.\n", nodeid);
   packetbuf_copyfrom(&_packet, sizeof(_packet));
   broadcast_send(&broadcast);
 }

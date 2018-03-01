@@ -31,6 +31,7 @@ class BroadcastBaseRequestEntry(LogEntry):
         super(BroadcastBaseRequestEntry, self).__init__(raw_entry)
         assert("Sending base request to" in self.msg)
 
+        self.msg = self.msg.replace('.', ' ')
         values = list(map(int, filter(lambda s: s.isnumeric(), self.msg.split(" "))))
         self.sent_id = values[0]
 
