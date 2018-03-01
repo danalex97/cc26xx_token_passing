@@ -71,7 +71,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
     // When receiving a priority response.
     if(data->packet == PRIORITY_RESPONSE){
       printf("[Priority] received from %d.%d.'\n",
-             from->u8[0], from->u8[1], data->packet);
+             from->u8[0], from->u8[1]);
 
       // Notify main process
       state = Priority;
@@ -180,8 +180,6 @@ priority_gen_handler(void *ptr) {
 }
 
 #endif
-/*---------------------------------------------------------------------------*/
-
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(base_station_process, ev, data)
 {
