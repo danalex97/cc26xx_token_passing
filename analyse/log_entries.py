@@ -62,5 +62,29 @@ class BroadcastRecvEntry(LogEntry):
         return "<{} ID:{} BROADCAST-RECV(from: {}, msg: {})>".format(
             self.timestamp, self.id, self.from_id, self.msg_id
         )
-        # return "<{} ID:{} BROADCAST-RECV({}: {} => {})>".format(
-        #     self.timestamp, self.id, self.msg_id, self.from_id, self.to_id)
+
+# Priority requests
+class PrioritySentEntry(LogEntry):
+    def __init__(self, raw_entry):
+        super(PrioritySentEntry, self).__init__(raw_entry)
+        assert("Sending priority request to" in self.msg)
+
+        self.msg = self.msg.replace('.', ' ')
+        values = list(map(int, filter(lambda s: s.isnumeric(), self.msg.split(" "))))
+        self.node_id = values[0]
+
+    def __repr__(self):
+        return "<{} ID:{} PRIORITY-SENT(node_id: {})>".format(self.timestamp, self.id, self.node_id)
+
+class PriorityRecvEntry(LogEntry):
+    def __init__(self, raw_entry):
+        super(PriorityRecvEntry, self).__init__(raw_entry)
+        assert("[Priority] received from" in self.msg)
+
+        self.msg = self.msg.replace('.', ' ')
+        self.msg = self.msg.replace('\'', ' ')
+        values = list(map(int, filter(lambda s: s.isnumeric(), self.msg.split(" "))))
+        self.node_id = values[1] * 256 + values[0]
+
+    def __repr__(self):
+        return "<{} ID:{}  PRIORITY-RECV(node_id: {})>".format(self.timestamp, self.id, self.node_id)
