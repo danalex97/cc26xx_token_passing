@@ -23,28 +23,45 @@ def make_canvases():
     return fig, plots[:-1]
 
 class Canvas():
-    def __init__(self, fig, ax, range_size, fig_name="default"):
+    def __init__(self, fig, ax, range_size, fig_name="default", y_label="pdr", scatter=False):
         self.fig = fig
         self.ax = ax
 
         self.x  = range(0, range_size)
         self.y  = [0] * range_size
-        self.data, = ax.plot(self.x, self.y)
+        self.scatter = scatter
+
+        if self.scatter:
+            self.path = ax.scatter([], [])
+        else:
+            self.data, = ax.plot(self.x, self.y)
 
         self.ax.set_xlabel("time(s)")
-        self.ax.set_ylabel("pdr")
+        self.ax.set_ylabel(y_label)
         self.ax.set_title(fig_name)
+
+    def _set_data(self, x, y):
+        self.x = x
+        self.y = y
+        if len(self.y) < len(self.x):
+            self.y += [0] * (len(self.x) - len(self.y))
+        if self.scatter:
+            self.path.set_offsets(np.c_[x, y])
+        else:
+            self.data.set_xdata(self.x)
+            self.data.set_ydata(self.y)
 
     def update_data(self, x, y):
         self.fig.gca().set_xlim([min(x), max(x)])
         self.fig.gca().set_ylim([0, 1.1])
 
-        self.x = x
-        self.y = y
-        if len(self.y) < len(self.x):
-            self.y += [0] * (len(self.x) - len(self.y))
-        self.data.set_xdata(self.x)
-        self.data.set_ydata(self.y)
+        self._set_data(x, y)
+
+    def update_scatter_data(self, x, y, x_range=[0, 300], y_range=[0, 60]):
+        self.fig.gca().set_xlim(x_range)
+        self.fig.gca().set_ylim(y_range)
+
+        self._set_data(x, y)
 
     def draw(self):
         self.fig.canvas.draw()

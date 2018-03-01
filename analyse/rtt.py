@@ -14,8 +14,11 @@ from collections import defaultdict
 
 from plot import make_canvases
 from plot import Canvas
-import time
-import signal
+
+from pdr import run_cooja
+
+global interval
+interval = 1000
 
 def rtts(log_entries):
     sent_entries = filter_entries(log_entries, PrioritySentEntry)
@@ -44,33 +47,30 @@ def rtts(log_entries):
 
 if __name__ == "__main__":
     log_file = sys.argv[1]
-    # run_cooja()
+    run_cooja()
 
-    # fig, axs = make_canvases()
+    fig, axs = make_canvases()
 
-    # upd_interval = 30
-    # canvases = {}
-    # idx = 0
-    # for key in range(2, 11):
-    #     canvases[key] = Canvas(fig, axs[idx], upd_interval, "Node {}".format(key))
-    #     idx += 1
+    upd_interval = 30
+    canvases = {}
+    idx = 0
+    for key in range(2, 11):
+        canvases[key] = Canvas(fig, axs[idx], upd_interval, "Node {}".format(key), y_label="rtt(ms)", scatter=True)
+        idx += 1
 
-    log_entries  = get_log(log_file)
-    rtt_per_node = rtts(log_entries)
-    print(rtt_per_node)
+    def animate(_unused):
+        log_entries  = get_log(log_file)
+        rtt_per_node = rtts(log_entries)
 
-    # def animate(current_index):
-    #     log_entries = get_log(log_file)
-    #     pdr_per_node = pdr(log_entries)
-    #
-    #     slide = max(0, int(log_entries[-1].timestamp / interval) - upd_interval)
-    #     current_index = min(current_index, slide)
-    #
-    #     for key, canvas in canvases.items():
-    #         if key not in pdr_per_node:
-    #             continue
-    #         canvas.update_data(
-    #             range(current_index, current_index + upd_interval),
-    #             pdr_per_node[key][current_index : current_index + upd_interval])
-    #
-    # canvases[2].run(animate)
+        for key, canvas in canvases.items():
+            if key not in rtt_per_node:
+                continue
+            to_display = [(float(ts)/float(interval), rtt)
+                for (ts, rtt) in rtt_per_node[key]]
+
+            xs = [x for x, y in to_display]
+            ys = [y for x, y in to_display]
+
+            canvas.update_scatter_data(xs, ys)
+
+    canvases[2].run(animate)
