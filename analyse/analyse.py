@@ -89,22 +89,6 @@ def run_cooja():
         sys.exit(0)
     signal.signal(signal.SIGINT, sigint_handler)
 
-def draw_textbox():
-    textbox.set_text("INFO")
-    textbox.append_separator()
-
-    # Filter old log entries
-    useful_log_entries = [e for e in log_entries
-        if  e.timestamp > 60000
-        and e.timestamp < (current_index + upd_interval) * 1000]
-    pdr_per_node = pdr(useful_log_entries)
-
-    for key, node_pdr in pdr_per_node.items():
-        avg_pdr = sum(node_pdr) / len(node_pdr)
-        textbox.append_text("Node {} pdr: {}".format(key, avg_pdr))
-    textbox.append_separator()
-    textbox.render()
-
 if __name__ == "__main__":
     # # DEBUG...
     # log_file = sys.argv[1]
@@ -115,7 +99,7 @@ if __name__ == "__main__":
     log_file = sys.argv[1]
     run_cooja()
 
-    fig, axs, textbox = make_canvases()
+    fig, axs = make_canvases()
 
     upd_interval = 30
     canvases = {}
@@ -124,9 +108,7 @@ if __name__ == "__main__":
         canvases[key] = Canvas(fig, axs[idx], upd_interval, "Node {}".format(key))
         idx += 1
 
-    log_entries = []
-    current_index = 0
-    while True:
+    def animate(current_index):
         log_entries = get_log(log_file)
         pdr_per_node = pdr(log_entries)
 
@@ -139,10 +121,5 @@ if __name__ == "__main__":
             canvas.update_data(
                 range(current_index, current_index + upd_interval),
                 pdr_per_node[key][current_index : current_index + upd_interval])
-        for key, canvas in canvases.items():
-            canvas.draw()
 
-        # draw_textbox()
-
-        if slide > current_index:
-            current_index += 1
+    canvases[2].run(animate)
