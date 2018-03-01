@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "packet.h"
 #include "queue.h"
+#include <stdbool.h>
 
 // Node ID -> array index
 uint8_t _nodeid_index = 0;
@@ -157,11 +158,33 @@ send_request(uint16_t nodeid) {
 }
 
 /*---------------------------------------------------------------------------*/
+#if ENABLE_PRIORITY_PACKET
+static struct ctimer ct_priority;
+static struct ctimer ct_second;
+
+void
+random_seed_handler(void *ptr) {
+  getRandSeed();
+  _counter = 0;
+  printf("Generating random seed.\n");
+
+  ctimer_reset(&ct_priority);
+}
+
+void
+priority_gen_handler(void *ptr) {
+  checkPriority();
+  _counter++;
+
+  ctimer_reset(&ct_second);
+}
+
+#endif
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(base_station_process, ev, data)
 {
-  static struct etimer et_priority;
-  static struct etimer et_second;
-
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
@@ -179,10 +202,15 @@ PROCESS_THREAD(base_station_process, ev, data)
   getRandSeed();
 
 #if ENABLE_PRIORITY_PACKET
-  etimer_set(&et_second, CLOCK_SECOND);
-  etimer_set(&et_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND);
+  ctimer_set(&ct_second, CLOCK_SECOND,
+    random_seed_handler, NULL);
+  ctimer_set(&ct_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND,
+    priority_gen_handler, NULL);
 #endif
+
   while(1) {
+    bool enter = false;
+
     if (state == Priority) {
       if (queue_size() == 0) {
         // If no priority request is pending, send a normal request
@@ -213,25 +241,6 @@ PROCESS_THREAD(base_station_process, ev, data)
       // Yield the process so we can receive packets
       PROCESS_YIELD();
     }
-
-#if ENABLE_PRIORITY_PACKET
-    if(ev == PROCESS_EVENT_TIMER && data == &et_priority){
-      getRandSeed();
-      etimer_reset(&et_priority);
-      _counter = 0;
-      printf("Generating random seed.\n");
-
-      PROCESS_YIELD();
-    } else if(ev == PROCESS_EVENT_TIMER && data == &et_second){
-      // printf("Check priority\n");
-      checkPriority();
-      _counter++;
-      etimer_reset(&et_second);
-
-      PROCESS_YIELD();
-    }
-#endif
-
   }
 
   PROCESS_END();

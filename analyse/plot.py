@@ -48,7 +48,6 @@ class Canvas():
 
     def draw(self):
         self.fig.canvas.draw()
-        # self.fig.canvas.draw()
 
     def run(self, animate):
         ani = animation.FuncAnimation(self.fig, animate, frames=1000, interval=1000)
