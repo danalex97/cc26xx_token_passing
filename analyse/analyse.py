@@ -39,26 +39,20 @@ def pdr(log_entries):
         send_entries = group_by(send_by_id[node_id], lambda entry: int(entry.timestamp / interval))
         recv_entries = group_by(recv_by_id[node_id], lambda entry: int(entry.timestamp / interval))
 
+        recv_msg_ids = set([e.msg_id for e in recv_by_id[node_id]])
+
         for i in sorted(list(set(send_entries.keys()) | set(recv_entries.keys()))):
             # Look at interval i
             if not i in send_entries:
+                continue
+            if not i in recv_entries:
                 continue
 
             # Calculate send entries / interval
             send_entries_per_interval = send_entries[i]
 
-            recv_entries_per_interval = []
-            if i in recv_entries:
-                recv_entries_per_interval += recv_entries[i]
-            if i + 1 in recv_entries:
-                recv_entries_per_interval += recv_entries[i + 1]
-
             # Calculate pdr
-            recv_msg_ids = set([e.msg_id for e in recv_entries_per_interval])
-            if len(recv_msg_ids) == 0:
-                continue
-
-            min_msg_id = min(recv_msg_ids)
+            min_msg_id = min([e.msg_id for e in recv_entries[i]])
             max_msg_id = min_msg_id + len(send_entries_per_interval)
 
             ctr = 0
@@ -67,17 +61,14 @@ def pdr(log_entries):
                     ctr += 1
 
             raport = ctr / (max_msg_id - min_msg_id)
+
+            if raport < 1:
+                print("Packet not received yet(or lost) at node {} in interval {}.".format(
+                    node_id, i
+                ))
+
             pdr_per_node[node_id].append(raport)
     return pdr_per_node
-
-    # for j in range(2, 11):
-    #     max_msg_id = max([e.msg_id for e in recv_by_id[j]])
-    #     min_msg_id = max([e.msg_id for e in recv_by_id[j]])
-    #     lst = [int(e.msg_id) for e in recv_by_id[j]]
-    #     for i in range(min_msg_id, max_msg_id):
-    #         if i not in lst:
-    #             print("Node {}: missing {}".format(j, i))
-    #     print(len(lst))
 
 def run_cooja():
     os.system("rm COOJA.log")
@@ -89,13 +80,32 @@ def run_cooja():
         sys.exit(0)
     signal.signal(signal.SIGINT, sigint_handler)
 
-if __name__ == "__main__":
-    # # DEBUG...
-    # log_file = sys.argv[1]
-    # log_entries = [e for e in get_log(log_file)
-    #         if  e.timestamp > 60000]
-    # print(pdr(log_entries)[3])
+# FOR DEBUGGGING
+# def verify():
+#     log_file = sys.argv[1]
+#     log_entries = [e for e in get_log(log_file)
+#         if  e.timestamp > 60000]
+#     send_entries = filter_entries(log_entries, BroadcastBaseRequestEntry)
+#     recv_entries = filter_entries(log_entries, BroadcastRecvEntry)
+#
+#     send_by_id = group_by(send_entries, lambda entry: entry.sent_id)
+#     recv_by_id = group_by(recv_entries, lambda entry: entry.from_id)
+#
+#     print([e.msg_id for e in recv_by_id[3]])
+#
+#     for j in range(2, 11):
+#         max_msg_id = max([e.msg_id for e in recv_by_id[j]])
+#         min_msg_id = min([e.msg_id for e in recv_by_id[j]])
+#         lst = [int(e.msg_id) for e in recv_by_id[j]]
+#         for i in range(min_msg_id, max_msg_id):
+#             if i not in lst:
+#                 print("Node {}: missing {}".format(j, i))
+#         print(j, len(lst), min_msg_id, max_msg_id)
+#
+#     pdr_per_node = pdr(log_entries)
+#     print(pdr_per_node[3])
 
+if __name__ == "__main__":
     log_file = sys.argv[1]
     run_cooja()
 

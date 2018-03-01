@@ -209,8 +209,6 @@ PROCESS_THREAD(base_station_process, ev, data)
 #endif
 
   while(1) {
-    bool enter = false;
-
     if (state == Priority) {
       if (queue_size() == 0) {
         // If no priority request is pending, send a normal request
