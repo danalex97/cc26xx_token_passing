@@ -75,7 +75,7 @@ class Canvas():
 
     def update_data(self, x, y):
         self.fig.gca().set_xlim([min(x), max(x)])
-        self.fig.gca().set_ylim([0, 1])
+        self.fig.gca().set_ylim([0, 1.1])
 
         self.x = x
         self.y = y

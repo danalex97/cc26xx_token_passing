@@ -5,9 +5,9 @@ import subprocess
 from log_entries import LogEntry
 from log_entries import BroadcastSentEntry
 from log_entries import BroadcastRecvEntry
+from log_entries import BroadcastBaseRequestEntry
 
 from log_processing import get_log
-from log_processing import pool_log
 from log_processing import group_by
 from log_processing import filter_entries
 
@@ -22,26 +22,29 @@ global interval
 interval = 1000
 
 def pdr(log_entries):
-    send_entries = filter_entries(log_entries, BroadcastSentEntry)
+    # Map from node_id -> pdr list for each interval
+    pdr_per_node = {}
+
+    send_entries = filter_entries(log_entries, BroadcastBaseRequestEntry)
     recv_entries = filter_entries(log_entries, BroadcastRecvEntry)
 
-    sent_by_id = group_by(send_entries, lambda entry: entry.id)
+    send_by_id = group_by(send_entries, lambda entry: entry.sent_id)
     recv_by_id = group_by(recv_entries, lambda entry: entry.from_id)
 
     pdr_per_node = {}
-    for node_id in sent_by_id.keys():
+    for node_id in recv_by_id.keys():
         pdr_per_node[node_id] = []
 
-        if node_id not in sent_by_id: sent_by_id[node_id] = []
-        if node_id not in recv_by_id: recv_by_id[node_id] = []
-
-        send_entries = group_by(sent_by_id[node_id], lambda entry: int(entry.timestamp / interval))
+        # Group entries by time interval
+        send_entries = group_by(send_by_id[node_id], lambda entry: int(entry.timestamp / interval))
         recv_entries = group_by(recv_by_id[node_id], lambda entry: int(entry.timestamp / interval))
 
         for i in sorted(list(set(send_entries.keys()) | set(recv_entries.keys()))):
+            # Look at interval i
             if not i in send_entries:
                 continue
 
+            # Calculate send entries / interval
             send_entries_per_interval = send_entries[i]
 
             recv_entries_per_interval = []
@@ -50,18 +53,31 @@ def pdr(log_entries):
             if i + 1 in recv_entries:
                 recv_entries_per_interval += recv_entries[i + 1]
 
-            send_entries_map = group_by(send_entries_per_interval, lambda entry: entry.msg_id)
-            recv_entries_map = group_by(recv_entries_per_interval, lambda entry: entry.msg_id)
+            # Calculate pdr
+            recv_msg_ids = set([e.msg_id for e in recv_entries_per_interval])
+            if len(recv_msg_ids) == 0:
+                continue
 
-            count_recv_msg = 0
-            # count recv_msg by message id
-            for msg_id in send_entries_map.keys():
-                if msg_id in recv_entries_map:
-                    count_recv_msg += 1
+            min_msg_id = min(recv_msg_ids)
+            max_msg_id = min_msg_id + len(send_entries_per_interval)
 
-            raport = count_recv_msg / len(send_entries_per_interval)
+            ctr = 0
+            for msg_id in range(min_msg_id, max_msg_id):
+                if msg_id in recv_msg_ids:
+                    ctr += 1
+
+            raport = ctr / (max_msg_id - min_msg_id)
             pdr_per_node[node_id].append(raport)
     return pdr_per_node
+
+    # for j in range(2, 11):
+    #     max_msg_id = max([e.msg_id for e in recv_by_id[j]])
+    #     min_msg_id = max([e.msg_id for e in recv_by_id[j]])
+    #     lst = [int(e.msg_id) for e in recv_by_id[j]]
+    #     for i in range(min_msg_id, max_msg_id):
+    #         if i not in lst:
+    #             print("Node {}: missing {}".format(j, i))
+    #     print(len(lst))
 
 def run_cooja():
     os.system("rm COOJA.log")
@@ -73,7 +89,29 @@ def run_cooja():
         sys.exit(0)
     signal.signal(signal.SIGINT, sigint_handler)
 
+def draw_textbox():
+    textbox.set_text("INFO")
+    textbox.append_separator()
+
+    # Filter old log entries
+    useful_log_entries = [e for e in log_entries
+        if  e.timestamp > 60000
+        and e.timestamp < (current_index + upd_interval) * 1000]
+    pdr_per_node = pdr(useful_log_entries)
+
+    for key, node_pdr in pdr_per_node.items():
+        avg_pdr = sum(node_pdr) / len(node_pdr)
+        textbox.append_text("Node {} pdr: {}".format(key, avg_pdr))
+    textbox.append_separator()
+    textbox.render()
+
 if __name__ == "__main__":
+    # # DEBUG...
+    # log_file = sys.argv[1]
+    # log_entries = [e for e in get_log(log_file)
+    #         if  e.timestamp > 60000]
+    # print(pdr(log_entries)[3])
+
     log_file = sys.argv[1]
     run_cooja()
 
@@ -89,9 +127,7 @@ if __name__ == "__main__":
     log_entries = []
     current_index = 0
     while True:
-        new_log_entries = pool_log(log_file)
-
-        log_entries += new_log_entries
+        log_entries = get_log(log_file)
         pdr_per_node = pdr(log_entries)
 
         slide = max(0, int(log_entries[-1].timestamp / interval) - upd_interval)
@@ -106,20 +142,7 @@ if __name__ == "__main__":
         for key, canvas in canvases.items():
             canvas.draw()
 
-        textbox.set_text("INFO")
-        textbox.append_separator()
-
-        # Filter old log entries
-        useful_log_entries = [e for e in log_entries
-            if  e.timestamp > 60000
-            and e.timestamp < (current_index + upd_interval) * 1000]
-        pdr_per_node = pdr(useful_log_entries)
-
-        for key, node_pdr in pdr_per_node.items():
-            avg_pdr = sum(node_pdr) / len(node_pdr)
-            textbox.append_text("Node {} pdr: {}".format(key, avg_pdr))
-        textbox.append_separator()
-        textbox.render()
+        # draw_textbox()
 
         if slide > current_index:
             current_index += 1

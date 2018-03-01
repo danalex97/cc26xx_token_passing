@@ -26,6 +26,17 @@ class BroadcastSentEntry(LogEntry):
     def __repr__(self):
         return "<{} ID:{} BROADCAST-SENT(msg: {})>".format(self.timestamp, self.id, self.msg_id)
 
+class BroadcastBaseRequestEntry(LogEntry):
+    def __init__(self, raw_entry):
+        super(BroadcastBaseRequestEntry, self).__init__(raw_entry)
+        assert("Sending base request to" in self.msg)
+
+        values = list(map(int, filter(lambda s: s.isnumeric(), self.msg.split(" "))))
+        self.sent_id = values[0]
+
+    def __repr__(self):
+        return "<{} ID:{} BROADCAST-SENT(sent_id: {})>".format(self.timestamp, self.id, self.sent_id)
+
 class BroadcastRecvEntry(LogEntry):
     def __init__(self, raw_entry):
         super(BroadcastRecvEntry, self).__init__(raw_entry)
