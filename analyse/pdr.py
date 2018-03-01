@@ -6,6 +6,7 @@ from log_entries import LogEntry
 from log_entries import BroadcastSentEntry
 from log_entries import BroadcastRecvEntry
 from log_entries import BroadcastBaseRequestEntry
+from log_entries import NodeJoinEntry
 
 from log_processing import get_log
 from log_processing import group_by
@@ -80,16 +81,22 @@ def run_cooja():
         sys.exit(0)
     signal.signal(signal.SIGINT, sigint_handler)
 
+def get_nodes(log_entries):
+    node_entries = filter_entries(log_entries, NodeJoinEntry)
+    return [e.node_id for e in node_entries][0:9]
+
 if __name__ == "__main__":
     log_file = sys.argv[1]
-    run_cooja()
+    # run_cooja()
+    log_entries  = get_log(log_file)
+    node_ids     = get_nodes(log_entries)
 
     fig, axs = make_canvases()
 
     upd_interval = 30
     canvases = {}
     idx = 0
-    for key in range(2, 11):
+    for key in node_ids:
         canvases[key] = Canvas(fig, axs[idx], upd_interval, "Node {}".format(key))
         idx += 1
 
@@ -107,4 +114,4 @@ if __name__ == "__main__":
                 range(current_index, current_index + upd_interval),
                 pdr_per_node[key][current_index : current_index + upd_interval])
 
-    canvases[2].run(animate)
+    canvases[node_ids[0]].run(animate)

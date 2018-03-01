@@ -89,3 +89,16 @@ class PriorityRecvEntry(LogEntry):
 
     def __repr__(self):
         return "<{} ID:{}  PRIORITY-RECV(node_id: {})>".format(self.timestamp, self.id, self.node_id)
+
+class NodeJoinEntry(LogEntry):
+    def __init__(self, raw_entry):
+        super(NodeJoinEntry, self).__init__(raw_entry)
+        assert("Node join:" in self.msg)
+
+        self.msg = self.msg.replace(':', ' ')
+        self.msg = self.msg.replace('.', ' ')
+        values = list(map(int, filter(lambda s: s.isnumeric(), self.msg.split(" "))))
+        self.node_id = values[0]
+
+    def __repr__(self):
+        return "<{} ID:{}  JOIN(node_id: {})>".format(self.timestamp, self.id, self.node_id)

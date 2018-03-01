@@ -5,6 +5,7 @@ import subprocess
 from log_entries import LogEntry
 from log_entries import PrioritySentEntry
 from log_entries import PriorityRecvEntry
+from log_entries import NodeJoinEntry
 
 from log_processing import get_log
 from log_processing import group_by
@@ -16,6 +17,7 @@ from plot import make_canvases
 from plot import Canvas
 
 from pdr import run_cooja
+from pdr import get_nodes
 
 global interval
 interval = 1000
@@ -44,17 +46,19 @@ def rtts(log_entries):
         rtt_per_node[node_id] = rtts
     return rtt_per_node
 
-
 if __name__ == "__main__":
     log_file = sys.argv[1]
-    run_cooja()
+    # run_cooja()
 
     fig, axs = make_canvases()
+
+    log_entries  = get_log(log_file)
+    node_ids     = get_nodes(log_entries)
 
     upd_interval = 30
     canvases = {}
     idx = 0
-    for key in range(2, 11):
+    for key in node_ids:
         canvases[key] = Canvas(fig, axs[idx], upd_interval, "Node {}".format(key), y_label="rtt(ms)", scatter=True)
         idx += 1
 
@@ -73,4 +77,4 @@ if __name__ == "__main__":
 
             canvas.update_scatter_data(xs, ys)
 
-    canvases[2].run(animate)
+    canvases[node_ids[0]].run(animate)

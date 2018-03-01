@@ -24,6 +24,16 @@ struct base_packet_t _packet;
 uint16_t _counter = 0;
 
 /*---------------------------------------------------------------------------*/
+#if APPEND_TIMESTAMP
+  #define write_log(...) \
+    printf("%lu ID:1 ", ((uint32_t)clock_time() * 1000) / CLOCK_SECOND); \
+    printf(__VA_ARGS__);
+#else
+  #define write_log(...) \
+    printf(__VA_ARGS__);
+#endif
+
+/*---------------------------------------------------------------------------*/
 uint8_t node_count = SENDER_NUM;
 
 enum state_t {
@@ -62,7 +72,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 
   /* Handling node joins. */
   if (node_count > 0) {
-    printf("Node join: %u\n", nodeid);
+    write_log("Node join: %u\n", nodeid);
     node_count--;
     return;
   }
@@ -70,7 +80,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   if (data->type == SENDER_ACK) {
     // When receiving a priority response.
     if(data->packet == PRIORITY_RESPONSE){
-      printf("[Priority] received from %d.%d.\n",
+      write_log("[Priority] received from %d.%d.\n",
              from->u8[0], from->u8[1]);
 
       // Notify main process
@@ -79,12 +89,12 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
       return;
     }
 
-    printf("[Periodic] received from %d.%d: '%u'\n",
+    write_log("[Periodic] received from %d.%d: '%u'\n",
            from->u8[0], from->u8[1], data->packet);
   }
 
   if (data->type == SENDER_NACK) {
-    printf("Received nack from %d.%d.\n",
+    write_log("Received nack from %d.%d.\n",
       from->u8[0], from->u8[1]);
   }
 
@@ -124,14 +134,14 @@ void addPriorityRequest(uint16_t nodeid) {
 
   /* Enque the priority request*/
   push_packet(&_packet);
-  // printf("Pushing priority request to %u.\n", _packet.nodeid);
+  // write_log("Pushing priority request to %u.\n", _packet.nodeid);
 }
 
 // Sends a priority request to a sender node with the corresponding node id
 void sendPriorityRequest() {
   pop_packet(&_packet);
 
-  printf("Sending priority request to %u.\n", _packet.nodeid);
+  write_log("Sending priority request to %u.\n", _packet.nodeid);
   packetbuf_copyfrom(&_packet, sizeof(_packet));
   broadcast_send(&broadcast);
 }
@@ -152,7 +162,7 @@ send_request(uint16_t nodeid) {
   _packet.request_type = BASE_REQUEST;
   _packet.nodeid = nodeid;
 
-  printf("Sending base request to: %u.\n", nodeid);
+  write_log("Sending base request to: %u.\n", nodeid);
   packetbuf_copyfrom(&_packet, sizeof(_packet));
   broadcast_send(&broadcast);
 }
@@ -166,7 +176,7 @@ void
 random_seed_handler(void *ptr) {
   getRandSeed();
   _counter = 0;
-  printf("Generating random seed.\n");
+  write_log("Generating random seed.\n");
 
   ctimer_reset(&ct_priority);
 }
@@ -190,11 +200,12 @@ PROCESS_THREAD(base_station_process, ev, data)
   broadcast_open(&broadcast, 129, &broadcast_call);
   init_queue(MAX_BASE_QUEUE, sizeof(struct base_packet_t));
 
+  write_log("%s\n", "Waiting for nodes to join.");
   /* Waiting for sender to join. */
   while (node_count > 0) {
     PROCESS_PAUSE();
   }
-  printf("%s\n", "Nodes registered.");
+  write_log("%s\n", "Nodes registered.");
 
   // Inital random seed.
   getRandSeed();

@@ -17,6 +17,7 @@
 #define SENDER_NACK                     0x0001
 #define SENDER_ACK                      0x0000
 
+#define APPEND_TIMESTAMP                     1
 #define MAX_SENDER_QUEUE                     5
 #define MAX_BASE_QUEUE                       4
 /*---------------------------------------------------------------------------*/

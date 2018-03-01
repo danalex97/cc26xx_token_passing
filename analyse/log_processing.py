@@ -4,6 +4,7 @@ from log_entries import LogEntry
 from log_entries import BroadcastSentEntry
 from log_entries import BroadcastRecvEntry
 from log_entries import PrioritySentEntry
+from log_entries import NodeJoinEntry
 from log_entries import PriorityRecvEntry
 from log_entries import BroadcastBaseRequestEntry
 
@@ -15,6 +16,7 @@ def process_entry(log_raw_entry):
             return None
 
     entry_types = [
+        NodeJoinEntry,
         BroadcastSentEntry,
         BroadcastBaseRequestEntry,
         BroadcastRecvEntry,
