@@ -36,7 +36,7 @@
 #define DEBUG_ENABLED                         1
 #define PRIORITY_REQUEST                 0x0000
 #define PRIORITY_RESPONSE                0xFFFF
-#define SENDER_NUM                            1
+#define SENDER_NUM                            9
 
 // To allow control messages
 #define PACKAGE_SIZE                          4

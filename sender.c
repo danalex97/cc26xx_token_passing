@@ -37,7 +37,7 @@ getPriorityPacket(struct sender_packet_t* packet){
 }
 
 static void
-broadcast_control_message(){  
+broadcast_control_message(){
   packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 #if DEBUG_ENABLED
