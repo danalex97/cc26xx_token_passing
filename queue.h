@@ -19,7 +19,10 @@ init_queue(uint8_t capacity, uint8_t size) {
 void
 push_packet(void *packet) {
   if (_queue_size >= _capacity) {
+    /* If queue overflows, drop all packets. */
     printf("Queue overflow\n");
+
+    _queue_size = 0;
   }
   memcpy(&queue[_queue_size * _size], packet, _size);
   _queue_size++;

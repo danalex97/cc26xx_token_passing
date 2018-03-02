@@ -44,7 +44,7 @@ enum state_t {
   None
 };
 
-enum state_t state = None; 
+enum state_t state = None;
 
 // Current index of the node in the Round-Robin token passing
 uint8_t current_index = 0;
@@ -69,6 +69,12 @@ static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
   struct sender_packet_t *data = (struct sender_packet_t *)packetbuf_dataptr();
+
+  /* Ignore bad packets. */
+  if (data->canary != CANARY) {
+    return;
+  }
+
   uint16_t nodeid = from->u8[1]*256 + from->u8[0];
   getIndex(nodeid);
 
@@ -168,6 +174,7 @@ static void
 send_request(uint16_t nodeid) {
   _packet.request_type = BASE_REQUEST;
   _packet.nodeid = nodeid;
+  _packet.canary = CANARY;
 
   write_log("Sending base request to: %u.\n", nodeid);
   packetbuf_copyfrom(&_packet, sizeof(_packet));
@@ -178,6 +185,7 @@ static void
 send_start_request() {
   _packet.request_type = START_REQUEST;
   _packet.nodeid = 0;
+  _packet.canary = CANARY;
 
   write_log("Sending start request.\n");
   packetbuf_copyfrom(&_packet, sizeof(_packet));

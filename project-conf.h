@@ -17,6 +17,7 @@
 #define START_REQUEST                   0x1010
 #define SENDER_NACK                     0x0001
 #define SENDER_ACK                      0x0000
+#define CANARY                          0xF25E
 
 #define APPEND_TIMESTAMP                     1
 #define MAX_SENDER_QUEUE                     9
@@ -31,7 +32,7 @@
 /* Coursework parameters */
 #define PERIODIC_INTERVAL_MILISEC           200
 #define PRIORITY_INTERVAL_SEC                30
-#define ENABLE_PRIORITY_PACKET                0
+#define ENABLE_PRIORITY_PACKET                1
 #define DEBUG_ENABLED                         1
 #define PRIORITY_REQUEST                 0x0000
 #define PRIORITY_RESPONSE                0xFFFF

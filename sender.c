@@ -56,6 +56,12 @@ static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
   struct base_packet_t *data = (struct base_packet_t *)packetbuf_dataptr();
+
+  /* Ignore bad packets. */
+  if (data->canary != CANARY) {
+    return;
+  }
+
   uint16_t nodeid = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
 
   if (data->request_type == START_REQUEST) {
@@ -99,11 +105,14 @@ void getNextPacket(struct sender_packet_t* packet){
     count = 1;
 
   packet->type = SENDER_ACK;
+  packet->canary = CANARY;
 }
 /*---------------------------------------------------------------------------*/
 
 static void
 send_node_id(void *ptr) {
+  packet.canary = CANARY;
+
   /* Send some useless data to join the star topology. */
   packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
