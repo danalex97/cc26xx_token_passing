@@ -25,6 +25,7 @@ struct sender_packet_t packet;
 static void
 generate_nack(struct sender_packet_t* packet) {
   packet->type = SENDER_NACK;
+  packet->canary = CANARY;
 }
 
 static void
@@ -32,10 +33,11 @@ getPriorityPacket(struct sender_packet_t* packet){
   packet->packet = PRIORITY_RESPONSE;
 
   packet->type = SENDER_ACK;
+  packet->canary = CANARY;
 }
 
 static void
-broadcast_control_message(){
+broadcast_control_message(){  
   packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 #if DEBUG_ENABLED

@@ -122,7 +122,7 @@ static struct broadcast_conn broadcast;
 // Initialize the node ids to 0.
 void init(){
   int i;
-  for(i = 0 ; i < 9 ; i++){
+  for(i = 0 ; i < SENDER_NUM; i++){
     _nodeid[i] = 0;
   }
 }
