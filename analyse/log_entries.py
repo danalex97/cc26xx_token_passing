@@ -3,7 +3,7 @@ class LogEntry():
         raw_fields = raw_entry.replace('\t', ' ').split(" ", 2)
 
         try:
-            self.timestamp = float(raw_fields[0]) / 1000
+            self.timestamp = float(raw_fields[0])
         except:
             mins = float(raw_fields[0].split(":")[0])
             secs = float(raw_fields[0].split(":")[1])
@@ -53,11 +53,12 @@ class BroadcastRecvEntry(LogEntry):
         # Works in Cooja; to test on real hardware
         self.msg = self.msg.replace('\'', ' ')
         self.msg = self.msg.replace(':', ' ')
+        self.msg = self.msg.replace('.', ' ')
         values = list(map(float, filter(lambda s: is_float(s), self.msg.split(" "))))
         values = list(map(int, values))
 
-        self.from_id = values[0]
-        self.msg_id  = values[1]
+        self.from_id = values[1] * 256 + values[0]
+        self.msg_id  = values[2]
 
     def __repr__(self):
         return "<{} ID:{} BROADCAST-RECV(from: {}, msg: {})>".format(

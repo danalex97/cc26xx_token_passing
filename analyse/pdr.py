@@ -88,6 +88,7 @@ def get_nodes(log_entries):
 if __name__ == "__main__":
     log_file = sys.argv[1]
     # run_cooja()
+
     log_entries  = get_log(log_file)
     node_ids     = get_nodes(log_entries)
 

@@ -22,6 +22,7 @@ uint16_t _nodeid[SENDER_NUM];
 uint16_t _randseed[SENDER_NUM];
 struct base_packet_t _packet;
 uint16_t _counter = 0;
+struct ctimer timeout;
 
 /*---------------------------------------------------------------------------*/
 #if APPEND_TIMESTAMP
@@ -213,8 +214,20 @@ priority_gen_handler(void *ptr) {
 
   ctimer_reset(&ct_second);
 }
-
 #endif
+
+void
+timeout_handler(void *ptr) {
+  if (state == Receiving) {
+    printf("Timeout at base station.\n");
+    state = Priority;
+    ctimer_restart(&timeout);
+
+    // Notify main loop.
+    process_post(&base_station_process, PROCESS_EVENT_CONTINUE, NULL);
+  }
+}
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(base_station_process, ev, data)
 {
@@ -249,6 +262,7 @@ PROCESS_THREAD(base_station_process, ev, data)
   send_start_request();
   state = Priority;
 
+  ctimer_set(&timeout, CLOCK_SECOND / 10, timeout_handler, NULL);
   while(1) {
     if (state == Priority) {
       if (queue_size() == 0) {
@@ -260,6 +274,7 @@ PROCESS_THREAD(base_station_process, ev, data)
       else {
         // Send a priority request
         sendPriorityRequest();
+        ctimer_restart(&timeout);
 
         state = Receiving;
 
@@ -272,12 +287,18 @@ PROCESS_THREAD(base_station_process, ev, data)
     if (state == Requesting) {
       // Send request
       send_request(_nodeid[current_index]);
+      ctimer_restart(&timeout);
 
       current_index = (current_index + 1) % SENDER_NUM;
 
       state = Receiving;
 
       // Yield the process so we can receive packets
+      PROCESS_YIELD();
+    }
+
+    if (state == Receiving) {
+      printf("Data race detected.");
       PROCESS_YIELD();
     }
   }
