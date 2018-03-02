@@ -32,7 +32,7 @@
 /* Coursework parameters */
 #define PERIODIC_INTERVAL_MILISEC           200
 #define PRIORITY_INTERVAL_SEC                30
-#define ENABLE_PRIORITY_PACKET                0
+#define ENABLE_PRIORITY_PACKET                1
 #define DEBUG_ENABLED                         1
 #define PRIORITY_REQUEST                 0x0000
 #define PRIORITY_RESPONSE                0xFFFF

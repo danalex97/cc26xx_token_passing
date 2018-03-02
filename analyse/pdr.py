@@ -85,6 +85,30 @@ def get_nodes(log_entries):
     node_entries = filter_entries(log_entries, NodeJoinEntry)
     return [e.node_id for e in node_entries][0:9]
 
+def get_avg_pdr(log_entries):
+    send_entries = filter_entries(log_entries, BroadcastBaseRequestEntry)
+    recv_entries = filter_entries(log_entries, BroadcastRecvEntry)
+
+    send_by_id = group_by(send_entries, lambda entry: entry.sent_id)
+    recv_by_id = group_by(recv_entries, lambda entry: entry.from_id)
+
+    pdrs = []
+    for node_id in recv_by_id.keys():
+        recv_msgs = [e.msg_id for e in recv_by_id[node_id]
+            if e.timestamp > 60000 and e.timestamp < 300000]
+
+        min_idx_ids = min(recv_msgs)
+        max_idx_ids = max(recv_msgs)
+
+        ctr = 0
+        recv_set = set([e.msg_id for e in recv_by_id[node_id]])
+        for i in range(min_idx_ids, max_idx_ids):
+            if i in recv_set:
+                ctr += 1
+        pdrs.append(float(ctr) / float(max_idx_ids - min_idx_ids + 1))
+    return float(sum(pdrs)) / float(len(pdrs))
+
+
 if __name__ == "__main__":
     log_file = sys.argv[1]
     # run_cooja()
@@ -104,6 +128,8 @@ if __name__ == "__main__":
     def animate(current_index):
         log_entries = get_log(log_file)
         pdr_per_node = pdr(log_entries)
+
+        print("Current total pdr: {}".format(get_avg_pdr(log_entries)))
 
         slide = max(0, int(log_entries[-1].timestamp / interval) - upd_interval)
         current_index = min(current_index, slide)
