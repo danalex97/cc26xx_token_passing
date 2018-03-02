@@ -58,6 +58,11 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   struct base_packet_t *data = (struct base_packet_t *)packetbuf_dataptr();
   uint16_t nodeid = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
 
+  if (data->request_type == START_REQUEST) {
+    // Post a messsage for node to start generating packets.
+    process_post(&sender_mote_process, PROCESS_EVENT_CONTINUE, NULL);
+  }
+
   /* Receive base request */
   if(data->request_type == BASE_REQUEST && data->nodeid == nodeid) {
     printf("Received base request with for node_id %u\n", nodeid);
@@ -116,18 +121,12 @@ PROCESS_THREAD(sender_mote_process, ev, data)
   init_queue(MAX_SENDER_QUEUE, sizeof(struct sender_packet_t));
 
   /* Send node id to base station */
-  uint16_t random_timeout = random_rand() % (CLOCK_SECOND * 30);
-  uint16_t inital_timeout = CLOCK_SECOND * 10;
+  uint16_t random_timeout = random_rand() % (CLOCK_SECOND * 20);
+  uint16_t inital_timeout = CLOCK_SECOND * 2;
   ctimer_set(&ct_init, inital_timeout + random_timeout, send_node_id, NULL);
 
-  /* Wait for base station to function. */
-  etimer_set(&et_periodic, CLOCK_SECOND * 40);
-  while(1) {
-    PROCESS_YIELD();
-    if(ev == PROCESS_EVENT_TIMER && data == &et_periodic){
-      break;
-    }
-  }
+  /* Wait for base station send inital packet. */
+  PROCESS_YIELD();
 
   /* Set Timer*/
   etimer_set(&et_periodic, CLOCK_SECOND/5);

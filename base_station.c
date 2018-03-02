@@ -39,10 +39,12 @@ uint8_t node_count = SENDER_NUM;
 enum state_t {
   Requesting,
   Priority,
-  Receiving
+  Receiving,
+  Inital,
+  None
 };
 
-enum state_t state = Requesting; // initial state?
+enum state_t state = None; 
 
 // Current index of the node in the Round-Robin token passing
 uint8_t current_index = 0;
@@ -74,6 +76,11 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   if (node_count > 0) {
     write_log("Node join: %u\n", nodeid);
     node_count--;
+
+    if (node_count == 0) {
+      state = Inital;
+      process_post(&base_station_process, PROCESS_EVENT_CONTINUE, NULL);
+    }
     return;
   }
 
@@ -167,6 +174,16 @@ send_request(uint16_t nodeid) {
   broadcast_send(&broadcast);
 }
 
+static void
+send_start_request() {
+  _packet.request_type = START_REQUEST;
+  _packet.nodeid = 0;
+
+  write_log("Sending start request.\n");
+  packetbuf_copyfrom(&_packet, sizeof(_packet));
+  broadcast_send(&broadcast);
+}
+
 /*---------------------------------------------------------------------------*/
 #if ENABLE_PRIORITY_PACKET
 static struct ctimer ct_priority;
@@ -216,6 +233,13 @@ PROCESS_THREAD(base_station_process, ev, data)
   ctimer_set(&ct_priority, PRIORITY_INTERVAL_SEC * CLOCK_SECOND,
     priority_gen_handler, NULL);
 #endif
+
+  PROCESS_YIELD(); // Yield until all process have joined
+  if (state != Inital) {
+    printf("Initilization went wrong. It's not me boss.\n");
+  }
+  send_start_request();
+  state = Priority;
 
   while(1) {
     if (state == Priority) {
