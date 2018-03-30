@@ -12,9 +12,17 @@
 #undef NETSTACK_CONF_RDC
 #define NETSTACK_CONF_RDC     nullrdc_driver // Define the RDC driver to use.
 
-#define NORMAL_REQUEST                   0x0F0F
-#define NORMAL_REQUEST_0                   0x0F
-#define NORMAL_REQUEST_1                   0x0F
+/*---------------------------------------------------------------------------*/
+#define BASE_REQUEST                    0x0101
+#define START_REQUEST                   0x1010
+#define SENDER_NACK                     0x0001
+#define SENDER_ACK                      0x0000
+#define CANARY                          0xF25E
+
+#define APPEND_TIMESTAMP                     1
+#define MAX_SENDER_QUEUE                     9
+#define MAX_BASE_QUEUE                       4
+/*---------------------------------------------------------------------------*/
 
 #define MAX_PENDING_REQUESTS                  5
 #define INIT_TIME                            10
@@ -34,7 +42,9 @@
 #define PRIORITY_REQUEST                 0x0000
 #define PRIORITY_RESPONSE                0xFFFF
 #define SENDER_NUM                            9
-#define PACKAGE_SIZE                          2
+
+// To allow control messages
+#define PACKAGE_SIZE                          4
 #define PRIORITY_REQUEST_SIZE                 4
 /*---------------------------------------------------------------------------*/
 #endif /* PROJECT_CONF_H_ */

@@ -10,6 +10,8 @@
 #include "random.h"
 #include "project-conf.h"
 #include <stdio.h>
+#include "packet.h"
+#include "queue.h"
 
 /*---------------------------------------------------------------------------*/
 PROCESS(sender_mote_process, "Sender motes");
@@ -17,19 +19,35 @@ AUTOSTART_PROCESSES(&sender_mote_process);
 /*---------------------------------------------------------------------------*/
 static struct broadcast_conn broadcast;
 uint16_t count = 1;
-uint8_t packet[PACKAGE_SIZE];
-static uint16_t nodeid;
+struct sender_packet_t packet;
+/*---------------------------------------------------------------------------*/
 
-uint8_t packets_pending = 0;
-uint8_t packet_queue[MAX_PENDING_REQUESTS][PACKAGE_SIZE];
-
-void getPriorityPacket(uint8_t* packet){
-  packet[1] = 255;
-  packet[0] = 255;
+static void
+generate_nack(struct sender_packet_t* packet) {
+  packet->type = SENDER_NACK;
+  packet->canary = CANARY;
 }
 
-void broadcast_message(uint8_t* packet){
-  packetbuf_copyfrom(packet, sizeof(packet));
+static void
+getPriorityPacket(struct sender_packet_t* packet){
+  packet->packet = PRIORITY_RESPONSE;
+
+  packet->type = SENDER_ACK;
+  packet->canary = CANARY;
+}
+
+static void
+broadcast_control_message(){
+  packetbuf_copyfrom(&packet, sizeof(packet));
+  broadcast_send(&broadcast);
+#if DEBUG_ENABLED
+  printf("NACK %u\n", packet.type);
+#endif
+}
+/*---------------------------------------------------------------------------*/
+
+void broadcast_message(){
+  packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 #if DEBUG_ENABLED
   printf("broadcast message sent: %d\n", count);
@@ -39,16 +57,42 @@ void broadcast_message(uint8_t* packet){
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  uint16_t *datapacket = (uint16_t *)packetbuf_dataptr();
+  struct base_packet_t *data = (struct base_packet_t *)packetbuf_dataptr();
+
+  /* Ignore bad packets. */
+  if (data->canary != CANARY) {
+    return;
+  }
+
+  uint16_t nodeid = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
+
+  if (data->request_type == START_REQUEST) {
+    // Post a messsage for node to start generating packets.
+    process_post(&sender_mote_process, PROCESS_EVENT_CONTINUE, NULL);
+  }
+
+  /* Receive base request */
+  if(data->request_type == BASE_REQUEST && data->nodeid == nodeid) {
+    printf("Received base request with for node_id %u\n", nodeid);
+
+    if (queue_size() > 0) {
+      pop_packet(&packet);
+      broadcast_message();
+    } else {
+      // If no response is on, generate a nack
+      generate_nack(&packet);
+      broadcast_control_message();
+    }
+  }
 
 #if ENABLE_PRIORITY_PACKET
   // When overhear a Priority request, check if this is for itself.
-  if(datapacket[0] == PRIORITY_REQUEST && datapacket[1] == nodeid){
+  if(data->request_type == PRIORITY_REQUEST && data->nodeid == nodeid){
 #if DEBUG_ENABLED
-    printf("Received priority request with data packet %u for node_id %u\n", datapacket[1], nodeid);
+    printf("Received priority request with data packet %u for node_id %u\n", data->request_type, nodeid);
 #endif
-    getPriorityPacket(packet);
-    broadcast_message(packet);
+    getPriorityPacket(&packet);
+    broadcast_message();
   }
 #endif
 
@@ -65,34 +109,44 @@ if(datapacket[0] == NORMAL_REQUEST && datapacket[1] == nodeid) {
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 
 // Generates a packet with the counter value.
-void getNextPacket(uint8_t* packet){
-  packet[1] = count / 256;
-  packet[0] = count % 256;
+void getNextPacket(struct sender_packet_t* packet){
+  packet->packet = count;
   count++;
   if(count == PRIORITY_RESPONSE)
     count = 1;
+
+  packet->type = SENDER_ACK;
+  packet->canary = CANARY;
 }
+/*---------------------------------------------------------------------------*/
 
 static void
-send_register(void *ptr){
-  printf("Sending register: %u\n", nodeid);
+send_node_id(void *ptr) {
+  packet.canary = CANARY;
 
-  packetbuf_copyfrom(&nodeid, sizeof(nodeid));
+  /* Send some useless data to join the star topology. */
+  packetbuf_copyfrom(&packet, sizeof(packet));
   broadcast_send(&broadcast);
 }
-
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(sender_mote_process, ev, data)
 {
   static struct etimer et_periodic;
-  static struct ctimer ct_periodic;
+  static struct ctimer ct_init;
 
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
-  nodeid = linkaddr_node_addr.u8[1]*256 + linkaddr_node_addr.u8[0];
-
   broadcast_open(&broadcast, 129, &broadcast_call);
+  init_queue(MAX_SENDER_QUEUE, sizeof(struct sender_packet_t));
+
+  /* Send node id to base station */
+  uint16_t random_timeout = random_rand() % (CLOCK_SECOND * 20);
+  uint16_t inital_timeout = CLOCK_SECOND * 2;
+  ctimer_set(&ct_init, inital_timeout + random_timeout, send_node_id, NULL);
+
+  /* Wait for base station send inital packet. */
+  PROCESS_YIELD();
 
   /* Initial send to establish connections. */
   random_init(0);
@@ -105,11 +159,8 @@ PROCESS_THREAD(sender_mote_process, ev, data)
   while(1) {
     PROCESS_YIELD();
     if(ev == PROCESS_EVENT_TIMER && data == &et_periodic){
-      getNextPacket(packet);
-
-      // Enqueue pending packets to be sent to the source
-      memcpy(packet_queue[packets_pending], packet, sizeof(packet));
-      packets_pending++;
+      getNextPacket(&packet);
+      push_packet(&packet);
 
       etimer_reset(&et_periodic);
     }
