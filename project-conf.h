@@ -24,15 +24,20 @@
 #define MAX_BASE_QUEUE                       4
 /*---------------------------------------------------------------------------*/
 
+#define MAX_PENDING_REQUESTS                  5
+#define INIT_TIME                            10
+/*---------------------------------------------------------------------------*/
 /* Change to match your configuration */
 #define IEEE802154_CONF_PANID            0xABCD
 #define RF_CORE_CONF_CHANNEL                 18
 #define RF_BLE_CONF_ENABLED                   0
 
+
 /* Coursework parameters */
 #define PERIODIC_INTERVAL_MILISEC           200
-#define PRIORITY_INTERVAL_SEC                30
-#define ENABLE_PRIORITY_PACKET                1
+#define PRIORITY_INTERVAL_SEC                10
+#define MAX_PRIORITY_NUMBER                   4
+#define ENABLE_PRIORITY_PACKET                0
 #define DEBUG_ENABLED                         1
 #define PRIORITY_REQUEST                 0x0000
 #define PRIORITY_RESPONSE                0xFFFF

@@ -18,6 +18,9 @@
 uint8_t _nodeid_index = 0;
 uint16_t _nodeid[SENDER_NUM];
 
+// For round-robin-send
+uint8_t request_index = 0;
+
 // For priority testing
 uint16_t _randseed[SENDER_NUM];
 struct base_packet_t _packet;
@@ -129,10 +132,22 @@ void init(){
 }
 
 // Generates random seed for all seen nodes between <0 - 30> seconds
+/*
+ * HOTFIX [26th Feb]
+ * Now 1-4 nodes are selected to send priority messages with in each PRIORITY_INTERVAL_SEC interval (changed to 10 seconds in project-conf.h).
+ */
+
 void getRandSeed(){
   int i;
-  for(i = 0 ; i < _nodeid_index ; i++){
-    _randseed[i] = random_rand() % PRIORITY_INTERVAL_SEC;
+  for(i = 0;i<_nodeid_index;i++){
+    _randseed[i] = 0;
+  }
+  for(i = 0 ; i < MAX_PRIORITY_NUMBER ; i++){
+    int node_id = random_rand()%_nodeid_index;
+    _randseed[node_id] = random_rand() % PRIORITY_INTERVAL_SEC;
+    while(_randseed[node_id] == 0){
+      _randseed[node_id] = random_rand() % PRIORITY_INTERVAL_SEC;
+    }
   }
 }
 
@@ -248,6 +263,11 @@ PROCESS_THREAD(base_station_process, ev, data)
   // Inital random seed.
   getRandSeed();
 
+  /* Waiting to other nodes to join the network.*/
+  while (init_packets_pending > 0) {
+    PROCESS_PAUSE();
+  }
+
 #if ENABLE_PRIORITY_PACKET
   ctimer_set(&ct_second, CLOCK_SECOND,
     random_seed_handler, NULL);
@@ -302,7 +322,6 @@ PROCESS_THREAD(base_station_process, ev, data)
       PROCESS_YIELD();
     }
   }
-
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

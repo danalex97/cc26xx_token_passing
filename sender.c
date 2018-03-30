@@ -95,6 +95,15 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
     broadcast_message();
   }
 #endif
+
+if(datapacket[0] == NORMAL_REQUEST && datapacket[1] == nodeid) {
+    printf("%s\n", "Sending.");
+    memcpy(packet, packet_queue[packets_pending], sizeof(packet));
+    memcpy(packet_queue, packet_queue + sizeof(packet), sizeof(packet) * (packets_pending - 1));
+    packets_pending--;
+
+    broadcast_message(packet);
+  }
 }
 
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
@@ -138,6 +147,11 @@ PROCESS_THREAD(sender_mote_process, ev, data)
 
   /* Wait for base station send inital packet. */
   PROCESS_YIELD();
+
+  /* Initial send to establish connections. */
+  random_init(0);
+  uint16_t wait_time = random_rand() % (CLOCK_SECOND * 40);
+  ctimer_set(&ct_periodic, INIT_TIME * CLOCK_SECOND + wait_time, send_register, NULL);
 
   /* Set Timer*/
   etimer_set(&et_periodic, CLOCK_SECOND/5);
